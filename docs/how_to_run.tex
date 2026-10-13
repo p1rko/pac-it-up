@@ -1,0 +1,323 @@
+\documentclass[11pt,a4paper]{article}
+\PassOptionsToPackage{obeyspaces,spaces}{url}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{amssymb}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{xurl}
+
+\definecolor{accent}{HTML}{1F4E79}
+\definecolor{codebg}{HTML}{F4F6F8}
+\definecolor{good}{HTML}{2E7D32}
+\definecolor{warn}{HTML}{B26A00}
+\definecolor{bad}{HTML}{C62828}
+
+\hypersetup{colorlinks=true, linkcolor=accent, urlcolor=accent}
+\setlist{itemsep=2pt, topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+
+\lstset{
+  language=bash,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{codebg},
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  xleftmargin=4pt, xrightmargin=4pt,
+  showstringspaces=false,
+  commentstyle=\color{gray}\itshape,
+  keywordstyle={}, morecomment=[l]{\#}
+}
+
+\newcommand{\p}[1]{\nolinkurl{#1}}  % paths / commands inline, with line breaks allowed
+
+\newtcolorbox{step}[1]{colback=white, colframe=accent, fonttitle=\bfseries, title=#1,
+  arc=2pt, boxrule=0.8pt, breakable, before skip=10pt, after skip=10pt}
+\newtcolorbox{expect}{colback=good!6, colframe=good, fonttitle=\bfseries, title=What you should see,
+  arc=2pt, boxrule=0.5pt, breakable}
+\newtcolorbox{careful}[1][Careful]{colback=warn!6, colframe=warn, fonttitle=\bfseries, title=#1,
+  arc=2pt, boxrule=0.5pt, breakable}
+
+\title{\textbf{How to Run the Pacman Contest}\\[4pt]\large An exact, step-by-step guide for this MacBook}
+\author{Team \texttt{pacman-agent}}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{tcolorbox}[colback=accent!5, colframe=accent, title=\textbf{The 30-second version}, arc=2pt]
+\begin{lstlisting}
+cd /Users/bortekstor/Desktop/Eutopia_Pacman_Contest/Pack_It_Up/pacman-agent
+source venv/bin/activate
+cd pacman-contest/src/contest
+python capture.py -r baseline_team -b ../../../my_team.py
+\end{lstlisting}
+This is the command from the organisers' \texttt{README.md}. Everything below explains each step exactly.
+\end{tcolorbox}
+
+\tableofcontents
+
+%=====================================================================
+\section{How the files are organised}
+%=====================================================================
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Path (inside \texttt{pacman-agent/})} & \textbf{What it is} \\
+\midrule
+\p{my_team.py} & \textbf{Your team. The only file you edit and submit.} It stays here, at the root. \\
+\p{TEAM.md} & Your team details (fill in before submitting). \\
+\p{venv/} & The Python environment (Homebrew Python 3.14 with a working Tk). \\
+\p{pacman-contest/} & The game engine from the organisers. Do not edit. \\
+\p{pacman-contest/src/contest/} & Where \texttt{capture.py}, \texttt{baseline\_team.py} and \texttt{layouts/} live. You run games from here. \\
+\p{pacman-contest/agents/} & Old example teams from the engine repository. \textbf{Not} where your file goes. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{careful}[Why \texttt{my\_team.py} is not in \texttt{agents/}]
+\begin{itemize}
+  \item The organisers' \texttt{README.md} says: \emph{``In the root folder \ldots\ create in \texttt{my\_team.py} a class \ldots''}
+        and runs it as \p{../../../my_team.py}, which is the root of \texttt{pacman-agent}.
+  \item \p{pacman-contest/agents/team_template/my_team.py} is an outdated example. It uses \texttt{import util}
+        instead of \texttt{import contest.util}, so it does not load with the current engine.
+  \item In the tournament, the organisers copy your \texttt{my\_team.py} into their own \p{teams/<your_team>/} folder.
+        You don't create that folder yourself.
+\end{itemize}
+\end{careful}
+
+%=====================================================================
+\section{Step-by-step: your first game}
+%=====================================================================
+
+\begin{step}{Step 1 --- Open Terminal and go to the project folder}
+Open \textbf{Terminal} (Cmd+Space, type \texttt{Terminal}, Enter). Then type:
+\begin{lstlisting}
+cd /Users/bortekstor/Desktop/Eutopia_Pacman_Contest/Pack_It_Up/pacman-agent
+\end{lstlisting}
+\end{step}
+
+\begin{step}{Step 2 --- Activate the virtual environment}
+\begin{lstlisting}
+source venv/bin/activate
+\end{lstlisting}
+\begin{expect}
+Your prompt now starts with \texttt{(venv)}. Check that the right Python is used:
+\begin{lstlisting}
+python -c "import tkinter, contest; print(tkinter.TkVersion)"
+\end{lstlisting}
+It must print \texttt{9.1}. If it prints \texttt{8.5} or an error, see Section~\ref{sec:trouble}.
+\end{expect}
+Repeat Step~2 in \textbf{every new Terminal window}. To leave the environment later, type \texttt{deactivate}.
+\end{step}
+
+\begin{step}{Step 3 --- Go to the engine folder}
+\begin{lstlisting}
+cd pacman-contest/src/contest
+\end{lstlisting}
+All game commands below are run from \textbf{this} folder. Here the short names \texttt{baseline\_team} and
+\texttt{officeCapture} work, and your team is \p{../../../my_team.py}.
+\end{step}
+
+\begin{step}{Step 4 --- Watch a game}
+\begin{lstlisting}
+python capture.py -r baseline_team -b ../../../my_team.py
+\end{lstlisting}
+\begin{expect}
+A game window opens. \textbf{Red (left)} is \texttt{baseline\_team}, \textbf{blue (right)} is your \texttt{my\_team.py}.
+Each agent gets 300 moves. At the end Terminal prints the result, e.g.\ \texttt{Tie game!} or
+\texttt{The Blue team wins by 5 points.}, and the window closes.
+\end{expect}
+To stop early: click on Terminal and press \textbf{Ctrl+C}.
+\end{step}
+
+\begin{careful}[Your \texttt{my\_team.py} is still the template]
+Right now \texttt{my\_team.py} contains the same agents as \texttt{baseline\_team}, so games usually end in a \textbf{tie}.
+That is expected. Results change once you write your own agents in \texttt{my\_team.py}.
+\end{careful}
+
+\begin{step}{Step 5 --- Fast games without graphics}
+\begin{lstlisting}
+python capture.py -r baseline_team -b ../../../my_team.py -q --delay-step 0
+\end{lstlisting}
+\begin{expect}
+Within a second: \texttt{Red team starts} / \texttt{Time is up.} / the result line.
+\end{expect}
+\textbf{Why \texttt{--delay-step 0}?} By default the engine sleeps 0.03\,s after every move: 36\,s of waiting per game,
+which looks like a hang. The tournament uses \texttt{--delay 0.0}, which does the same thing.
+\end{step}
+
+%=====================================================================
+\section{All useful options}
+%=====================================================================
+
+Add any of these to the \texttt{python capture.py \ldots} command (still in \p{pacman-contest/src/contest}).
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Option} & \textbf{What it does} \\
+\midrule
+\p{-l officeCapture} & Use a standard map. Choices: \texttt{defaultCapture} (default), \texttt{alleyCapture}, \texttt{bloxCapture},
+  \texttt{crowdedCapture}, \texttt{distantCapture}, \texttt{fastCapture}, \texttt{jumboCapture}, \texttt{mediumCapture},
+  \texttt{officeCapture}, \texttt{strategicCapture}, \texttt{testCapture}, \texttt{tinyCapture} \\
+\p{-l RANDOM13} & Random map from seed 13 (same seed, same map). Any number works. \\
+\p{-l RANDOM} & A new random map each game. \\
+\p{-n 10} & Play 10 games in a row, then print \texttt{Scores}, win rates and \texttt{Record}. \\
+\p{--delay-step 0.1} & Slow motion (seconds per move). \texttt{0} = full speed. \\
+\p{-z 0.6} & Window size (smaller than 1 shrinks it). \\
+\p{-q} & No graphics, minimal output. \\
+\p{-Q} & No graphics, and hide your agents' own prints. \\
+\p{-t} & Draw the game as text in Terminal. \\
+\p{-i 400} & Shorter game: 400 total moves instead of 1200. \\
+\p{-f} & Fixed random seed, so every run is identical (for debugging). \\
+\p{--red-name A --blue-name B} & Team names shown in the window. \\
+\p{--help} & List every option. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Exact examples}
+\begin{lstlisting}
+# your team as RED instead of blue (the tournament plays both sides)
+python capture.py -r ../../../my_team.py -b baseline_team
+
+# office map, slow motion
+python capture.py -r baseline_team -b ../../../my_team.py -l officeCapture --delay-step 0.1
+
+# 10 fast games on random maps, with a summary at the end
+python capture.py -r baseline_team -b ../../../my_team.py -l RANDOM -n 10 -q --delay-step 0
+
+# your team against itself
+python capture.py -r ../../../my_team.py -b ../../../my_team.py
+\end{lstlisting}
+
+\begin{careful}[Test both sides]
+In the tournament your team plays as red \emph{and} as blue on random maps. Always test with \texttt{-r} and \texttt{-b} swapped, and with \texttt{-l RANDOM}.
+\end{careful}
+
+%=====================================================================
+\section{Recording and replaying games}
+%=====================================================================
+
+\begin{step}{Record}
+\begin{lstlisting}
+python capture.py -r baseline_team -b ../../../my_team.py -q --delay-step 0 --record
+\end{lstlisting}
+Saved as \p{www/contest_default/replays/match_0.replay} (inside \p{pacman-contest/src/contest}).
+Add \texttt{-m 7} to save it as \texttt{match\_7} instead, so the next recording doesn't overwrite it.
+\end{step}
+
+\begin{step}{Replay with graphics}
+\begin{lstlisting}
+python capture.py --replay www/contest_default/replays/match_0.replay --delay-step 0.05
+\end{lstlisting}
+For tournament replays downloaded from the results page:
+\p{python capture.py --replay ~/Downloads/NAME.replay}
+\end{step}
+
+The \texttt{www/} folder only holds results and recordings. Delete it whenever you like: \texttt{rm -rf www}.
+
+%=====================================================================
+\section{Playing against your agent yourself}
+%=====================================================================
+\begin{lstlisting}
+python capture.py -r baseline_team -b ../../../my_team.py --keys0
+\end{lstlisting}
+You control red agent 0. Click the game window first, then use the \textbf{arrow keys} or \textbf{W A S D} (\textbf{Q} = stop).
+
+%=====================================================================
+\section{Checking that it will work in the competition}
+%=====================================================================
+
+\texttt{CONTEST.md} says the organisers run every match like this:
+\begin{lstlisting}
+python3 capture.py --delay 0.0 -r teams/<team1>/my_team.py -b teams/<team2>/my_team.py
+\end{lstlisting}
+You can reproduce that exactly. From \p{pacman-contest/src/contest}:
+\begin{lstlisting}
+mkdir -p /tmp/teams/mine /tmp/teams/other
+cp ../../../my_team.py /tmp/teams/mine/my_team.py
+cp baseline_team.py   /tmp/teams/other/my_team.py
+python3 capture.py --delay 0.0 -r /tmp/teams/mine/my_team.py -b /tmp/teams/other/my_team.py
+\end{lstlisting}
+If this game runs to the end without an error, your file will load in the tournament.
+
+\textbf{Checklist before submitting}
+\begin{itemize}[label=$\square$]
+  \item The competition-style test above runs without errors, with your team as red and as blue.
+  \item No \texttt{took too long to make a move} warnings (1\,s per move; the third warning loses the game).
+  \item \texttt{create\_team()} works with its default arguments. The tournament passes no extra options.
+  \item No \texttt{print(...)} left in \texttt{my\_team.py}. Everything printed is published with the results.
+  \item Only Python's standard library plus \texttt{numpy}/\texttt{scipy}/\texttt{sklearn}/\texttt{tensorflow}/\texttt{keras}, which the organisers guarantee.
+  \item \texttt{TEAM.md} filled in.
+\end{itemize}
+
+\begin{careful}[Where to submit]
+The provided files do not say how this contest collects submissions. Follow the organisers' instructions for that step.
+This folder's git \texttt{origin} is the organisers' template (\p{github.com/aig-upf/pacman-agent}), so you cannot push to it.
+If they ask for a repository, create your own \textbf{private} GitHub repository and point the folder at it:
+\begin{lstlisting}
+git remote set-url origin git@github.com:<your-user>/pacman-agent.git
+git add my_team.py TEAM.md && git commit -m "Submission"
+git push -u origin main
+\end{lstlisting}
+\end{careful}
+
+%=====================================================================
+\section{Troubleshooting}\label{sec:trouble}
+%=====================================================================
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{5.4cm}X@{}}
+\toprule
+\textbf{Message / symptom} & \textbf{Cause and exact fix} \\
+\midrule
+Window never appears, Python at 100\% CPU & Apple's old Python (Tk 8.5) is being used. Run \p{source venv/bin/activate}. If \texttt{TkVersion} still isn't 9.1, rebuild the venv (Section~\ref{sec:rebuild}). \\
+\texttt{No module named 'contest'} or \texttt{'frozendict'} & venv not active, or packages missing. Activate it, then from \texttt{pacman-agent}: \p{pip install -e pacman-contest frozendict numpy}. \\
+\texttt{No teams found!} / \texttt{could not be loaded} & You are not in \p{pacman-contest/src/contest} (Step~3), or the path to \texttt{my\_team.py} is wrong. \\
+\texttt{The layout \ldots\ cannot be found} & Same cause: run from \p{pacman-contest/src/contest}. \\
+Each game takes about 40 seconds & Add \p{--delay-step 0}. \\
+\texttt{KeyError: 'game\_id'} & You ran \texttt{runner.py}. It is broken in the provided files. Use \texttt{python capture.py} as above. \\
+\texttt{scripts/play.sh} gives \texttt{No teams found!} & It points to \texttt{myTeam.py}, which doesn't exist. Don't use it; use the commands above. \\
+\texttt{replay.py}: \texttt{python3.8} not found & The provided \texttt{replay.py} is hard-wired to Python 3.8. Use \p{python capture.py --replay FILE}. \\
+\texttt{Agent 1 took too long to make a move!} & Your agent needed more than 1\,s. Make it faster. \\
+\texttt{zsh: command not found: python} & venv not active (Step~2). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Rebuilding the environment from scratch}\label{sec:rebuild}
+Only needed if the venv is broken or deleted:
+\begin{lstlisting}
+cd /Users/bortekstor/Desktop/Eutopia_Pacman_Contest/Pack_It_Up/pacman-agent
+deactivate 2>/dev/null; rm -rf venv
+/opt/homebrew/bin/python3.14 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -e pacman-contest
+pip install frozendict numpy
+python -c "import tkinter, contest; print(tkinter.TkVersion)"   # must print 9.1
+\end{lstlisting}
+If \texttt{/opt/homebrew/bin/python3.14} is missing: \p{brew install python@3.14 python-tk@3.14}.
+Do \textbf{not} build the venv with plain \texttt{python3} (Apple's 3.9 with the broken Tk), and don't run \texttt{scripts/config.sh}
+(it adds the engine from a different repository).
+
+\subsection{Updating the game engine}
+If the organisers announce an engine update, from \texttt{pacman-agent}:
+\begin{lstlisting}
+git submodule update --init --remote
+source venv/bin/activate && pip install -e pacman-contest
+\end{lstlisting}
+
+\end{document}
