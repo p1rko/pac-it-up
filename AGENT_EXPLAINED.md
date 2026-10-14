@@ -1,0 +1,166 @@
+# Team "Pack It Up": how the agent works and why
+
+The submitted agent is `my_team.py` (a single self-contained file, as the contest requires).
+`create_team` builds a **RaiderAgent** and a **FlexAgent**. Both are subclasses of a shared
+`SmartAgent`, which holds all the machinery.
+
+---
+
+## 1. The idea in one paragraph
+
+I measured the early versions in hundreds of games and found that in Capture the Flag
+between decent agents, **catching an invader is rare** (about 0.3 catches per game). Games are
+decided by **how fast each team banks food**. A full-time defender spends most of the game
+standing on the border, which wastes half the team. So both of our agents attack by default.
+Pure double-offence, however, loses to simple greedy attackers like `baseline_team`, which then
+walk in and eat everything. The fix is a **flex** second agent. It attacks, but it turns around to
+defend when an invader comes near it or is carrying a dangerous amount of food. It also stops
+chasing if chasing has not been catching anyone.
+
+---
+
+## 2. Shared machinery (`SmartAgent`)
+
+### 2.1 Map analysis (done once, in `register_initial_state`)
+* **Maze distances** are precomputed by the framework (`get_maze_distance`).
+* **Border cells:** our side of the middle line, used as "home" targets and for patrol points.
+* **Dead ends (`_compute_dead_ends`):** the map is repeatedly pruned of cells with one
+  open neighbour. Every pruned cell is inside a *pocket* with a single exit. For each pocket cell
+  we store its **depth** and its **entrance**. This is the most important safety feature: a
+  Pacman deep in a pocket with a ghost near the entrance is dead, so we avoid that food when a
+  ghost is around.
+
+### 2.2 Belief tracking: where are the enemies we can't see?
+Enemies are only visible within 5 squares. Otherwise we only get a noisy distance. The team keeps
+an **exact probability distribution over cells for each enemy** (`update_beliefs`), shared by both
+agents through `TEAM_INFO`:
+1. **Predict:** the enemy that just moved spreads its probability to neighbouring cells.
+2. **Observe:** each cell is weighted by how likely the noisy sonar reading is from there.
+3. **Constrain:** cells are removed if they contradict what we know. An invader must be on our
+   side and a ghost on theirs, and an enemy cannot be within our sight radius if we don't see it.
+4. **Food clue:** if a dot disappears from our side, an unseen invader is standing exactly there.
+5. **Respawn recovery:** if the distribution collapses to nothing (usually the enemy was eaten),
+   it restarts from the enemy's spawn point.
+
+The most likely cell is used for patrol points, choosing food far from the guards, and hunting
+invisible invaders.
+
+### 2.3 Path planning
+`plan()` is a Dijkstra search with:
+* an extra **cost** for cells near dangerous ghosts, and for pocket cells when a ghost is near;
+* **blocked** cells: ghosts and the squares next to them are never entered.
+
+### 2.4 Close-range fights: alpha-beta search
+When a visible enemy is within 6 steps (a ghost that can eat our Pacman, or an invader near
+our ghost), the planned move is checked by **iterative-deepening alpha-beta** over the real
+game rules. It includes us **and every nearby enemy**, so two ghosts trapping us are both
+modelled. The evaluation rewards surviving, keeping the food we carry, getting home and eating
+capsules. It punishes standing in pockets near ghosts. For a defender, it rewards being between
+the invader and its way home. Search is **time-boxed** to 0.3 s per move.
+
+### 2.5 Safety against forfeits
+The rules forfeit a game after 3 slow moves or any exception. So:
+* `choose_action` wraps everything in `try/except`. If anything goes wrong, a random legal move
+  is played instead of crashing.
+* A per-turn budget (0.75 s) caps search time. Measured worst case in testing: **0.30 s/move**.
+* Setting the environment variable `PACKITUP_DEBUG=1` turns the safety net off so bugs show
+  up during development.
+
+---
+
+## 3. Attacking (`attack`)
+
+Priority list, top to bottom:
+1. **Bank it** if time is nearly out (moves left ≤ distance home + 3), or if the food we carry
+   wins the game.
+2. **Eat a scared ghost** that is right next to us. It costs the enemy a long walk back.
+3. **Being chased:** run for a capsule if we get there before the ghost. Otherwise run home if
+   carrying food.
+4. **Carry limit:** go home after 7 dots (5 if home is far). The limit is raised while the
+   guards are scared, and is unlimited if they stay scared long enough for us to get home.
+5. **Pick a target dot** from the *safe* food: no ghost is closer to it than we are, and no ghost
+   can cut us off at the pocket exit. Prefer dots that are close to us, far from where the guards
+   probably are, and (when carrying) not far from home. Avoid the teammate's target so the two
+   attackers spread out and overload a single defender.
+6. **Blocked by a guard:** slide along our border to the crossing furthest from every ghost
+   (seen or believed) and try again there.
+
+---
+
+## 4. Defending (`defend`)
+
+* **Visible or believed invader:** go to an **intercept point**. If the invader is in a pocket
+  and we can reach the pocket's mouth first, close the mouth (trap). If we can reach its escape
+  crossing first, wait on its path. Otherwise chase directly. The last few steps are handled by
+  alpha-beta.
+* **Scared** (they ate a capsule): shadow the invader at distance 2 so we can pounce the moment
+  the timer ends, without being eaten.
+* **No invaders:** stand on the border cell that best balances "close to the food we defend"
+  and "close to where the next attacker probably is".
+* Defenders **never cross the border** while defending.
+
+---
+
+## 5. Roles
+
+### RaiderAgent (agent 1)
+* Attacks by default, and eats any invader within 4 steps while passing through home.
+* If **two** invaders are in our half and one is near, it helps defend (one defender can't stop two).
+* **Late game with a lead:** stops attacking and defends the lead.
+
+### FlexAgent (agent 2)
+Same as the Raider, plus it defends when:
+* an invader is within 8 steps of it on our side **and defending has been paying off**, or
+* any invader carries **4+ dots** (always worth stopping).
+
+"Paying off" is measured live. It gets 40 free defend turns, then 40 more per invader it
+actually catches. Against greedy attackers (like the baseline) it catches several per game and
+keeps defending. Against evasive attackers it stops wasting time and goes back to scoring.
+
+(`WardenAgent`, a classic full-time defender that raids, is still in the file for comparison but
+is not used. It tested worse.)
+
+---
+
+## 6. How I tested it
+
+Scripts (not part of the submission) ran full games headless and in parallel on random maps
+(`-l RANDOM<seed>`), with each team playing **both colours** on every map. They counted wins,
+average score, and per-agent deaths, food lost and food returned.
+
+Sparring opponents:
+* `baseline_team`: the staff example (greedy attacker + reflex defender).
+* `strategies/reflex.py`, `tracking.py`, `search.py`: earlier drafts (attacker + defender).
+* **turtle**: two defenders. **blitz**: two attackers (both built from `search.py`).
+
+### Results that shaped the design (12 games each, from our side)
+
+| Version | vs baseline | vs tracking | vs blitz (2 attackers) |
+|---|---|---|---|
+| search.py (attacker + defender) | 10-0 (+19.8) | 8-9 | 3-16 |
+| v4: Raider + full-time Warden | win all | 3-9 | 5-10 |
+| v5: two Raiders (no defence) | **4-8** | 10-2 | 7-4 |
+| v5: Raider + Flex (fixed) | **12-0 (+23.1)** | 9-2 | 5-6 |
+| **final: Raider + adaptive Flex** | **12-0 (+23.1)** | 8-4 (+2.8) | 6-2-4 (-1.3) |
+
+Lessons:
+1. A dedicated defender loses throughput races (v4 vs tracking).
+2. No defender loses to greedy attackers (v5 double vs baseline).
+3. Flex defence gets most of both. The adaptive rule turned the blitz matchup from 5-6 into 6-2-4. With 12 games per row, differences of 1-2 wins are within noise.
+
+Timing: worst observed move 0.30 s (limit 1 s), and no crashes in debug mode.
+
+---
+
+## 7. Running it
+
+```bash
+cd pacman-contest/src/contest
+python capture.py -r ../../../my_team.py -b baseline_team             # watch a game
+python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fast, random map
+```
+
+## 8. Tunable knobs (top of `SmartAgent` / `FlexAgent`)
+`CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
+`DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`.
+If the tournament machine turns out slower, lower `SEARCH_TIME` first.
