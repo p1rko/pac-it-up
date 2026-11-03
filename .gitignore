@@ -221,3 +221,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+docs/
+
+# Tournament data (tools/)
+tools/results.db*
+tools/replays/
+tools/reports/
