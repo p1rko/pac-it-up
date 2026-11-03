@@ -51,3 +51,13 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - `tools/manual_analysis.md`: how to use it.
   - `diagnose.py capsules`: per-window capsule metrics.
 - **New leads:** F7 (we take few capsules) and F8 (our scared defenders get double-killed).
+- **Branch `f6-harvest`** holds this idea for further work.
+
+## Cycle 1, attempt 3: F2+F7, shallow Flex plus capsules when guarded (2026-11-03): rejected
+- **A/B (train), `20261103-195324-ab`:** Δ **−0.18 ± 0.07** pts/game. Worst against border-patrolling teams: search −0.42, tracking −0.35, reflex −0.25.
+- **What moved:**
+  - Flex banks about 1–2 fewer food per game (border food is the most guarded).
+  - Defence didn't improve: invader food banked against us went up, 8.99 → 9.47.
+  - F7 added only 0.05 capsules per game.
+- **Status:** saved as `strategies/experiments/f2_f7_shallow_capsules.py`. Champion is still v0.
+- **Lesson across F1, F2 and F6:** throughput wins. The next attempts should add food without costing attack time, for example F5 (stalls: about 70 idle attacking turns per game, roughly 12% of our team's moves).

@@ -115,6 +115,31 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 
 ## Rejected
 
+### F2+F7: Shallow Flex plus taking safe capsules when guarded (rejected 2026-11-03)
+- **Change:**
+  - Flex attacks only food within 8 steps of our border (`SHALLOW`); once none are left, it takes the shallowest food left.
+  - Flex answers nearby invaders while it's a Pacman within 4 steps of home (`RECALL_DIST`).
+  - Any attacker takes a safe capsule within 8 steps when a guard is in sight (`CAPSULE_DETOUR`), and before repositioning when every dot is guarded.
+  - Saved as `strategies/experiments/f2_f7_shallow_capsules.py`.
+- **A/B (train), `20261103-195324-ab`:** 480 games, 0 crashes.
+  - Δ **−0.18 ± 0.07** pts/game: significantly worse.
+  - By opponent: search −0.42, tracking −0.35, reflex −0.25, blitz −0.10, dario −0.03, turtle +0.07.
+- **What moved:**
+
+  | metric | v0 | F2+F7 |
+  |---|---|---|
+  | banked per game | 14.09 | 13.20 |
+  | invader food banked against us | 8.99 | 9.47 (**up**) |
+  | unopposed bites per game | 8.2 | 7.7 |
+  | "both attacking" share of unopposed bites | 45% | 46% (unchanged) |
+  | capsules per game | 0.51 | 0.56 |
+
+- **Why it failed:**
+  - **Border food is the most guarded food.** search, tracking and reflex all patrol the border, so a shallow Flex attacks exactly where their defender stands. Flex banked per game fell 8.62 → 6.61 (against others) and 7.09 → 6.04 (against search/tracking/reflex). The Raider only gained against non-patrolling teams (7.8 → 9.25), because Flex stopped competing with it for deep food.
+  - **Being close didn't make defence better.** A shallow Flex counts as "attacking" and is still more than 6 steps from the invaders, and `RECALL_DIST` = 4 rarely fires. Invader food banked against us even rose.
+  - **F7 barely changed capsule use** (+0.05 per game). Safe capsules within 8 steps while a guard is visible are rare.
+- **Lesson:** three changes in a row that moved an agent toward defence (F1, F2) or traded food for safety all lost points. In this field, **attack throughput is what wins**. Defence has to come at no throughput cost, or it doesn't pay.
+
 ### F1: Flex turns back for big hauls even while carrying food (rejected 2026-11-03)
 - **Evidence:** Cycle 0 (`20261103-180445-rr`, v0).
   - In 321 of the 690 unopposed bites by an invader carrying 4+ (47%), Flex was carrying food.
