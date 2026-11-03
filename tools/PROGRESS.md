@@ -61,3 +61,11 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - F7 added only 0.05 capsules per game.
 - **Status:** saved as `strategies/experiments/f2_f7_shallow_capsules.py`. Champion is still v0.
 - **Lesson across F1, F2 and F6:** throughput wins. The next attempts should add food without costing attack time, for example F5 (stalls: about 70 idle attacking turns per game, roughly 12% of our team's moves).
+
+## Cycle 1, attempt 4: F5a, commit to banking (2026-11-03): neutral on points, kept as base
+- **Branch:** `f5-stalls`. F5 is split into F5a (banking flip) and F5b (crossing standoff); see `FIXES.md`.
+- **Diagnosis:** a stall probe showed nearly all stalls are two decisions alternating every turn. About 28% are the food ↔ go-home flip at the carry-limit cliff (15 steps from home), and about 37% are food ↔ reposition standoffs.
+- **A/B (train), `20261103-232842-ab`:** Δ **−0.00 ± 0.05** pts/game, 0 crashes.
+  - Target hit: idle_attack 71.1 → 51.0 per game; banked 14.16 → 14.97.
+  - Wins, ties and losses barely changed: the extra food widens margins of games already decided.
+- **Status:** kept in `my_team.py` on `f5-stalls` as the base for F5b. Champion is still v0 until F5a+F5b passes.

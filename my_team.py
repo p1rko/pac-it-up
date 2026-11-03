@@ -103,6 +103,7 @@ class SmartAgent(CaptureAgent):
 
         self._compute_dead_ends()
         self.home_dist_cache = {}
+        self.banking = False    # decided to bank: keep going home instead of re-deciding
 
         # Fresh shared state every game (agents are reused across games with -n).
         TEAM_INFO[self.red] = {
@@ -590,6 +591,8 @@ class SmartAgent(CaptureAgent):
         blocked = self.ghost_blocked(ghosts) if my_state.is_pacman else set()
         nearest_ghost = min((self.dist(my_pos, g) for g in ghosts), default=INF)
         moves_left = self.moves_left(game_state)
+        if not my_state.is_pacman or carrying == 0:
+            self.banking = False
 
         # 1. Out of time, or carrying the win: bank what we carry.
         must_return = carrying > 0 and moves_left <= home_dist + self.SAFETY_MARGIN
@@ -627,7 +630,12 @@ class SmartAgent(CaptureAgent):
                 carry_limit = 100
             elif min_scared:
                 carry_limit += 3
-        if carrying >= carry_limit:
+        # Once we decide to bank, stick to it: the limit changes as we move
+        # (e.g. at 15 steps from home), which used to flip us back and forth.
+        if carry_limit >= 100:
+            self.banking = False
+        if carrying >= carry_limit or self.banking:
+            self.banking = True
             return self.go_home(game_state, cost_fn, blocked)
 
         # 5. Eat safe food, avoiding the teammate's target.
@@ -658,6 +666,7 @@ class SmartAgent(CaptureAgent):
 
         # Close to home with a decent haul and the next dot far away: bank first.
         if carrying >= 3 and self.dist(my_pos, target) > 2 * home_dist + 2:
+            self.banking = True
             return self.go_home(game_state, cost_fn, blocked)
 
         step, _ = self.plan(game_state, [target], cost_fn, blocked)

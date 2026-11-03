@@ -27,7 +27,41 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
 ---
 
 ## In progress
-(none)
+
+### F5: Attack standoffs (branch `f5-stalls`)
+- **Evidence:** v0 stalls 71 attacking turns per game (`idle_attack`, train A/B `20261103-232842-ab`), and "stalled" is the cause in 43 of 101 losses and ties.
+- **Stall probe** (48 games; now `tools/stall_probe.py`, which tags the code path on every stalled turn; stalled = Pacman with ≤2 cells in its last 10 moves). Almost every stall is two decisions alternating on successive turns:
+
+  | pattern over the 10-move window | share of stalls | cause |
+  |---|---|---|
+  | eat food ↔ go home | ~28% | the carry limit drops 7 → 5 beyond 15 steps from home; carrying 5–6 at distance 15/16 flips every move |
+  | eat food ↔ reposition | ~37% | a guard about 4 away: stepping in makes the food unsafe, stepping back makes it safe again |
+  | reposition ↔ reposition with search | ~11% | `reposition()` re-picks its crossing every turn from shifting beliefs |
+  | going home while chased | ~12% | really blocked by a ghost (left alone) |
+
+#### F5a: commit to banking: neutral on points, target hit, kept as the base for F5b
+- **Change:** `self.banking` is set when the carry limit or the "bank first" shortcut sends us home. While it is set, we keep going home. It clears at home, at carrying 0, or when the enemies are scared long enough for the no-limit mode. Steps 1–3 (out of time, scared prey, chased) still come first.
+- **Probe after:** the flip at 15–16 from home went from ~690 stalled moves to 2; stalled moves 65.7 → 53.7 per game.
+- **`tools/stall_probe.py --maps 4` on F5a** (its own seeds, so the totals differ from above): 37.5 stalled moves per game. **78% are now "food | reposition"** (Raider 46%, Flex 32%), 17% are "food" alone (the target changing each turn), and the go-home flip is under 3%.
+- **A/B (train), `20261103-232842-ab`:** 480 games, 0 crashes, 0 warnings, max move 0.34 s.
+  - Δ **−0.00 ± 0.05** pts/game: did not pass the gate.
+  - By opponent: blitz +0.12, dario +0.12, tracking 0.00, turtle −0.05, reflex −0.10, search −0.12 (all within 1 SE).
+
+  | metric (per game) | v0 | F5a |
+  |---|---|---|
+  | idle_attack | 71.1 | **51.0** |
+  | banked | 14.16 | **14.97** |
+  | margin | +5.1 | +5.7 |
+  | food lost in deaths | 1.15 | 1.04 |
+  | invader food banked against us | 9.03 | 9.27 |
+  | stalled losses + ties | 43 | 39 |
+
+- **Why no points:** the extra food mostly widens margins of games that were already decided (W-T-L 139-47-54 → 138-49-53). The stalls that decide close games are the guard standoffs, which is F5b's target.
+- **Status:** kept in `my_team.py` on `f5-stalls` (copy in `strategies/experiments/f5a_bank_commit.py`). F5a+F5b will be A/B'd against v0 together.
+
+#### F5b: commit to a crossing (next)
+- **Plan:** when `reposition()` fires, keep its crossing until we reach it or 12 turns pass. Only take safe food within 2 steps on the way. The next pick avoids crossings within about 4 of the last standoff.
+- **Target:** the "food ↔ reposition" and "reposition ↔ reposition" stalls, `idle_attack`, and points against search/tracking/reflex.
 
 ## Parked (neutral, worth combining later)
 
@@ -103,12 +137,6 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 ### F4: Same path out of long spawn corridors
 - **Evidence:** RANDOM398056 was lost 3 of 4 times (−29, −13, −13). Both agents walk out together, never cross the border, and the opponent raids freely.
 - **Idea:** give each agent its own crossing (upper and lower half of the border), and keep Flex home when the trip to the border is long.
-
-### F5: Attack standoffs
-- **Evidence:** 52 idle attacking turns per game, and "stalled" is the cause in 13 losses and ties.
-- **Cause (suspected):** `reposition()` re-picks its crossing every turn, so the attacker goes back and forth against a guard that mirrors it.
-- **Idea:** commit to a crossing for several turns; after K stuck turns, try a capsule, switch sides, or have Flex defend instead.
-- **Target metric:** `idle_attack` per game and stalled losses and ties.
 
 ## Fixed
 (none yet)
