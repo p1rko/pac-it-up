@@ -137,6 +137,30 @@ def paired(con, run_id):
     return table(['vs', 'pairs', 'Δ points/game (new−old)', 'SE'], rows), m, se
 
 
+def metric_deltas(con, run_id):
+    """A/B: average of every tracked metric and loss cause, new vs old, to see what a change moved."""
+    params = json.loads(con.execute('SELECT params_json FROM runs WHERE run_id = ?', (run_id,)).fetchone()[0])
+    new, old = [a.split('@')[1] for a in params['agents'][:2]]
+    sums = {h: defaultdict(float) for h in (new, old)}
+    n = {new: 0, old: 0}
+    for r in stats_rows(con, run_id):
+        h = r['agent_hash']
+        if h not in sums:
+            continue
+        n[h] += 1
+        for c in ['points', 'margin'] + PROFILE_COLUMNS:
+            sums[h][c] += r[c] or 0
+        if r['points'] < 3:
+            sums[h]['cause:' + r['loss_cause']] += 1
+    keys = ['points', 'margin'] + PROFILE_COLUMNS + sorted({k for s in sums.values() for k in s if k.startswith('cause:')})
+    rows = []
+    for k in keys:
+        a = sums[old][k] / max(n[old], 1)
+        b = sums[new][k] / max(n[new], 1)
+        rows.append((k, f'{a:.2f}', f'{b:.2f}', f'{b - a:+.2f}'))
+    return table(['metric (per game)', 'old', 'new', 'Δ'], rows)
+
+
 def report(con, run_id):
     if run_id == 'latest':
         run_id = con.execute('SELECT run_id FROM runs ORDER BY started DESC LIMIT 1').fetchone()[0]
@@ -149,7 +173,8 @@ def report(con, run_id):
     if run['kind'] == 'ab':
         t, m, se = paired(con, run_id)
         verdict = 'ACCEPT' if m > 2 * se else 'REJECT'
-        out += ['## A/B\n', t, f'\nGate (Δ > 2·SE): **{verdict}**\n']
+        out += ['## A/B\n', t, f'\nGate (Δ > 2·SE): **{verdict}**\n',
+                '## What the change moved\n', metric_deltas(con, run_id)]
     out += ['## Head-to-head\n', matrix(rows, order), '## Per-game averages\n', profile(rows, order),
             '## Loss/tie causes\n', causes(rows, order), '## Timing\n', timing(rows, order)]
     focus = next((k for k in order if k.startswith('my_team@')), order[0])

@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS team_stats (
     PRIMARY KEY (game_id, side));
 CREATE TABLE IF NOT EXISTS events (
     game_id TEXT, turn INTEGER, agent_index INTEGER, side TEXT, type TEXT, data_json TEXT);
+CREATE TABLE IF NOT EXISTS notes (
+    note_id INTEGER PRIMARY KEY AUTOINCREMENT, created REAL, game_id TEXT, turn INTEGER,
+    tag TEXT, text TEXT);
 CREATE INDEX IF NOT EXISTS idx_games_run ON games(run_id);
 CREATE INDEX IF NOT EXISTS idx_stats_agent ON team_stats(agent_hash);
 CREATE INDEX IF NOT EXISTS idx_events_game ON events(game_id);
@@ -63,6 +66,13 @@ def insert_run(con, run_id, git_commit, kind, purpose, map_pool, params):
     con.execute('INSERT INTO runs VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (run_id, time.time(), git_commit, kind, purpose, map_pool, json.dumps(params)))
     con.commit()
+
+
+def add_note(con, game_id, turn, tag, text):
+    cur = con.execute('INSERT INTO notes (created, game_id, turn, tag, text) VALUES (?, ?, ?, ?, ?)',
+                      (time.time(), game_id, turn, tag, text))
+    con.commit()
+    return cur.lastrowid
 
 
 def insert_game(con, run_id, r):

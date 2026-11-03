@@ -30,3 +30,24 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   2. Attack standoffs (52 idle turns per game).
   3. Long spawn-corridor maps (RANDOM398056 lost 3 of 4), where both agents leave on the same path and never cross the border.
 - **Gauntlet from now on:** dario, tracking, search, reflex, blitz, turtle, plus past versions.
+
+## Cycle 1: defence fix F1 (2026-11-03): rejected
+- **Champion:** still v0 (`f818255`).
+- **v0 on this gauntlet:** 1.91 pts/game (137-48-55). This is lower than the round-robin figure because baseline isn't in the gauntlet.
+- **Change:** F1, where Flex turns back for big hauls even while carrying (see `FIXES.md`).
+- **A/B (train), `20261103-183912-ab`:** Δ **−0.11 ± 0.04** pts/game, so rejected. Almost all of the loss is against blitz (−0.53). The targeted bites didn't drop (275 → 273): Flex is about 24 steps away when it matters.
+- **Lesson:** defence must come from an agent that is already near home. The next candidates are F2/F3.
+
+## Cycle 1, attempt 2: F6, harvest the scared-guard window (user's fix) (2026-11-03): neutral, not accepted
+- **A/B (train), `20261103-192737-ab`:** Δ **−0.02 ± 0.06** pts/game, 0 crashes.
+- **Target metrics hit:**
+  - banked per window 3.8 → 6.9
+  - scared ghosts eaten per window 0.72 → 0.11
+  - carrying at window end 5.5 → 3.4
+- **But points didn't move.** We only open 0.53 windows per game, most of the extra banking is a timing shift (banked per game is unchanged), and we gave up the value of sending a ghost back to spawn.
+- **Status:** kept as `strategies/experiments/f6_harvest.py`. Champion is still v0.
+- **New tooling:**
+  - `tools/watch.py`: queue, moments, events, play and notes.
+  - `tools/manual_analysis.md`: how to use it.
+  - `diagnose.py capsules`: per-window capsule metrics.
+- **New leads:** F7 (we take few capsules) and F8 (our scared defenders get double-killed).
