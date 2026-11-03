@@ -30,13 +30,15 @@ from tournament import ENGINE_DIR, make_layout, map_pool, seed_for  # noqa: E402
 
 GAUNTLET = ['strategies/dario.py', 'strategies/tracking.py', 'strategies/search.py',
             'strategies/reflex.py', 'strategies/blitz.py', 'strategies/turtle.py']
-TRACED = ['defend', 'go_home', 'reposition', 'flee']   # attack/hunt are implied by "food"
+TRACED = ['defend', 'go_home', 'reposition', 'follow_crossing', 'flee']   # attack/hunt are implied by "food"
 
 
 def instrument(agent):
     """Wrap the agent's methods so every move logs the paths it took."""
     for name in TRACED:
-        orig = getattr(agent, name)
+        orig = getattr(agent, name, None)
+        if orig is None:   # older versions lack some methods
+            continue
 
         def traced(*args, _orig=orig, _name=name, **kwargs):
             agent.probe_tags.append(_name)

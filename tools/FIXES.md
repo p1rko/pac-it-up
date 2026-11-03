@@ -59,9 +59,11 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
 - **Why no points:** the extra food mostly widens margins of games that were already decided (W-T-L 139-47-54 → 138-49-53). The stalls that decide close games are the guard standoffs, which is F5b's target.
 - **Status:** kept in `my_team.py` on `f5-stalls` (copy in `strategies/experiments/f5a_bank_commit.py`). F5a+F5b will be A/B'd against v0 together.
 
-#### F5b: commit to a crossing (next)
-- **Plan:** when `reposition()` fires, keep its crossing until we reach it or 12 turns pass. Only take safe food within 2 steps on the way. The next pick avoids crossings within about 4 of the last standoff.
+#### F5b: commit to a crossing: implemented, A/B pending
+- **Change:** when `reposition()` fires it stores its crossing in `self.crossing`, and `follow_crossing()` keeps heading there until we reach it or `COMMIT_TURNS` (12) pass. On the way it only takes safe food within 2 steps that is more than `STANDOFF_RADIUS` (4) from the standoff. Crossings within 4 of the standoff get a −10 appeal penalty, so we really move along the border.
 - **Target:** the "food ↔ reposition" and "reposition ↔ reposition" stalls, `idle_attack`, and points against search/tracking/reflex.
+- **Probe (`stall_probe.py --maps 4`, F5a+F5b):** stalled moves 37.5 → **14.8** per game; "food ↔ reposition" is gone. What is left is mostly "food" alone (62%): the food target changes every turn, a possible F5c.
+- **A/B:** the first train run was stopped at 220/480 (incomplete, ignore it). **Next step: rerun the train A/B of F5a+F5b against v0**, then holdout if it passes.
 
 ## Parked (neutral, worth combining later)
 

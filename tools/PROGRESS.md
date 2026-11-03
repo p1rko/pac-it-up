@@ -69,3 +69,11 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Target hit: idle_attack 71.1 → 51.0 per game; banked 14.16 → 14.97.
   - Wins, ties and losses barely changed: the extra food widens margins of games already decided.
 - **Status:** kept in `my_team.py` on `f5-stalls` as the base for F5b. Champion is still v0 until F5a+F5b passes.
+
+## Cycle 1, attempt 5: F5b, commit to the reposition crossing (2026-11-04): checkpoint, A/B pending
+- **Change:** see `FIXES.md`. Stall probe: stalled moves 37.5 → 14.8 per game.
+- **State:** committed on `f5-stalls` as an untested checkpoint. The train A/B was stopped at 220/480, so rerun it before deciding:
+
+  ```bash
+  PACKITUP_DEBUG=1 venv/bin/python tools/tournament.py ab my_team.py v0=strategies/history/v0.py --vs strategies/dario.py strategies/tracking.py strategies/search.py strategies/reflex.py strategies/blitz.py strategies/turtle.py --maps 20 --purpose "F5a+F5b: commit to banking and to the reposition crossing"
+  ```
