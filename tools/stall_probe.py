@@ -31,6 +31,7 @@ from tournament import ENGINE_DIR, make_layout, map_pool, seed_for  # noqa: E402
 GAUNTLET = ['strategies/dario.py', 'strategies/tracking.py', 'strategies/search.py',
             'strategies/reflex.py', 'strategies/blitz.py', 'strategies/turtle.py']
 TRACED = ['defend', 'go_home', 'reposition', 'follow_crossing', 'flee']   # attack/hunt are implied by "food"
+STYLE_CHECKPOINTS = (60, 150, 299)   # own turns at which the enemies' share of turns as Pacman is read
 
 
 def instrument(agent):
@@ -61,10 +62,15 @@ def instrument(agent):
         stuck = st.is_pacman and len(recent) == IDLE_WINDOW and len(set(recent)) <= 2
         agent.probe_log.append(dict(stuck=stuck, path='>'.join(agent.probe_tags) or 'food',
                                     carry=st.num_carrying, home_dist=agent.home_distance(pos)))
+        turns = len(agent.observation_history)
+        if turns in STYLE_CHECKPOINTS:
+            invaded = agent.team()['invader_turns'].values()
+            agent.probe_shares[turns] = sorted(n / (2.0 * turns) for n in invaded)
         return action
 
     recent = deque(maxlen=IDLE_WINDOW)
     agent.probe_log = []
+    agent.probe_shares = {}
     agent.finish, agent.choose_action = finish, choose_action
 
 
@@ -83,7 +89,8 @@ def play(task):
         g = capture.CaptureRules(quiet=True).new_game(lay, [red[0], blue[0], red[1], blue[1]],
                                                       NullGraphics(), 1200, True, True)
         g.run()
-    return [(type(a).__name__, a.probe_log) for a in ours]
+    return dict(opp=os.path.basename(task['opp']), shares=ours[0].probe_shares,
+                logs=[(type(a).__name__, a.probe_log) for a in ours])
 
 
 def main():
@@ -100,7 +107,7 @@ def main():
 
     patterns, flip_home_dist = Counter(), Counter()
     for game in games:
-        for role, log in game:
+        for role, log in game['logs']:
             for k, move in enumerate(log):
                 if not move['stuck']:
                     continue
@@ -114,6 +121,19 @@ def main():
     for pattern, n in patterns.most_common(15):
         print(f'  {n:5d} {n / stalled:6.1%}  {pattern}')
     print('\nfood <-> go_home flips by distance from home:', sorted(flip_home_dist.items()))
+
+    # Opponent style: share of turns each enemy spent as Pacman, the less
+    # attacking enemy first. "range" is over games, to see how clean a split is.
+    print('\nenemy share of turns as Pacman (less attacking / more attacking enemy):')
+    for opp in sorted({g['opp'] for g in games}):
+        cells = []
+        for t in STYLE_CHECKPOINTS:
+            vals = [g['shares'][t] for g in games if g['opp'] == opp and t in g['shares']]
+            if vals:
+                low = [v[0] for v in vals]
+                high = sum(v[1] for v in vals) / len(vals)
+                cells.append(f'turn {t}: {sum(low) / len(low):.2f} (range {min(low):.2f}-{max(low):.2f}) / {high:.2f}')
+        print(f'  {opp:12s} ' + ' | '.join(cells))
 
 
 if __name__ == '__main__':

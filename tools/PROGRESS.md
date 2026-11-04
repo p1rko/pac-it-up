@@ -91,4 +91,11 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
 - **A/B (train), `20261104-120346-ab`:** Δ **−0.03 ± 0.06** pts/game. Stalls 70 → 47, banked +1.1, conceded +1.0. Losses 54 → 59.
 - **Finding:** F5c's blitz gain came from Flex's guard mode, not from pressing. Pressing when behind banks more but also concedes more, so results don't flip.
 - **Status:** saved as `strategies/experiments/f5d_press_only.py`; `my_team.py` back to F5a.
-- **F5 overall:** four variants, none above noise. Stall turns double as guard turns, so cutting them trades food evenly. The summary table and revive ideas are in `FIXES.md` (opponent-adaptive guard mode is the most promising).
+- **F5 overall (as of F5d):** four variants, none above noise. Stall turns double as guard turns, so cutting them trades food evenly. The summary table and revive ideas are in `FIXES.md` (opponent-adaptive guard mode is the most promising).
+
+## Cycle 1, attempt 8: F5e, opponent-adaptive guard mode (2026-11-04): neutral, code kept
+- **Tournament format checked** (contest PDF §4.2, `CONTEST.md`): a round-robin league ranked by total points, with score balance as the tie-break, and more runs in the final. This led to the refined acceptance rule in `FIXES.md`.
+- **Calibration:** only blitz attacks with both agents (the less-attacking enemy is Pacman 0.36 of turns); dario has one attacker.
+- **A/B (train), `20261104-150542-ab`:** Δ **+0.03 ± 0.07** pts/game; blitz only +0.07, so F5c's +0.68 didn't come back.
+- **Status:** saved as `strategies/experiments/f5e_adaptive_guard.py`; `my_team.py` back to F5a.
+- **F5 overall:** five variants, none significant on points. Pooled over the four runs containing F5a: margin +0.25, banked +1.0, conceded +0.8.

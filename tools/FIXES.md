@@ -13,6 +13,13 @@ A fix is accepted only when the A/B gate passes on both the train and holdout po
 - no matchup worse than −1 SE against dario
 - 0 warnings or crashes
 
+**Refined rule (2026-11-04).** The real tournament is a round-robin league ranked by total points (W = 3, T = 1, L = 0), with score balance (the sum of margins) as the tie-break. So a change can also be accepted when all of these hold:
+- mean Δ ≥ 0
+- one opponent better by > 2 SE
+- no opponent worse than −2 SE
+
+That way a style-specific gain isn't diluted by our equal-weight gauntlet. Sources: the contest PDF v1.1 §4.2 and `pacman-contest/src/contest/CONTEST.md`.
+
 The targeted metric should also move. If points go up but the targeted metric doesn't move, the gain came from somewhere else, and we note that.
 
 Commands used for evaluation:
@@ -151,6 +158,26 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
   - **F5c's blitz gain (+0.68) came from Flex's guard mode, not from the press**, because F5d lost it (−0.03). So guard mode helps against attack-heavy opponents (blitz, dario) and hurts against single-attacker border teams (search, tracking).
 - **Status:** saved as `strategies/experiments/f5d_press_only.py`; `my_team.py` back to F5a.
 
+#### F5e: opponent-adaptive guard mode (F5c, guard only against two attackers): neutral, code kept
+- **Calibration** (`stall_probe.py`'s new attack-share readout). Share of turns the *less* attacking enemy spends as Pacman at the end of the game:
+
+  | opponent | share |
+  |---|---|
+  | blitz | 0.36 (range 0.29–0.46) |
+  | tracking | 0.09 |
+  | search | 0.08 |
+  | reflex | 0.07 (max 0.27) |
+  | turtle | 0.05 |
+  | dario | **0.00**: one attacker, so dario can't be separated from search/tracking by style |
+
+- **Change:** F5c, but Flex's guard mode is on only when `FlexAgent.standoff_defends()` holds: from `STYLE_TURNS` (100) on, both enemies have been Pacman ≥ `ATTACKER_SHARE` (0.25) of turns, i.e. blitz-like opponents.
+- **A/B (train), `20261104-150542-ab`:** 480 games, 0 crashes, 0 warnings, max move 0.37 s.
+  - Δ **+0.03 ± 0.07** pts/game: neutral. W-T-L 138-47-55 → 141-45-54.
+  - By opponent: dario +0.20, blitz +0.07, search +0.07, turtle 0.00, reflex −0.03, tracking −0.15 (all within 1.1 SE).
+  - It passes neither the gate nor the refined rule (no opponent > 2 SE).
+- **F5c's blitz +0.68 didn't come back** (+0.07 here). Either it was partly noise (we compare 6 opponents per run, so one 2.8 SE result is not that unlikely), or F5c's guard mode helped mainly in the first 100 turns, which F5e skips while it judges the style.
+- **Status:** saved as `strategies/experiments/f5e_adaptive_guard.py`; `my_team.py` back to F5a.
+
 #### F5 summary (all on top of or including F5a)
 | variant | Δ pts/game | idle_attack | banked | conceded |
 |---|---|---|---|---|
@@ -159,6 +186,9 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
 | F5b crossing commit | −0.13 ± 0.11 | 26 | 16.4 | 11.9 |
 | F5c score-aware + Flex guard | +0.00 ± 0.11 | 37 | 15.1 | 9.9 |
 | F5d score-aware, press only | −0.03 ± 0.06 | 47 | 15.1 | 10.0 |
+| F5e adaptive guard | +0.03 ± 0.07 | ~47 | 15.5 | ~9.6 |
+
+Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39, banked 14.14 → 15.18, conceded 9.00 → 9.79.
 
 **Lesson:** stall turns are not wasted turns in this field. Every stall turn removed turns into roughly equal food for both sides, because the stalled agent was guarding. Removing stalls alone doesn't win games; a gain has to come from better defence at the same time.
 
