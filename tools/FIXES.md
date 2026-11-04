@@ -269,9 +269,38 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
   - Let the defence budget refill slowly instead of hitting a hard cap.
 - **Target metric:** "raider attacking / flex attacking" share and bites with the invader carrying 1–3.
 
-### F3: Flex home but slow to reach invaders
+### F3: Flex home but slow to reach invaders → superseded by F9
 - **Evidence:** in 219 big-haul bites Flex was already home but about 15 steps away. In 94% of all unopposed bites the invader was unseen, so Flex chases a belief.
-- **Ideas:** better intercept target for unseen invaders (the belief mass near our food rather than the single most-likely cell), or patrol closer to the food.
+- **Update (F9 analysis):** locating an unseen invader is *not* the problem. `raid_probe.py` shows the most-likely cell is a median 2 steps from the truth (p75 4). The problem is that nobody home responds; see F9.
+
+### F9: Home hunt: neutral, code kept (2026-11-04)
+- **Evidence: v1 loss analysis** (480 games, train `20261103-232842-ab` + holdout `20261104-154525-ab`; 307 W, 79 T, 94 L).
+  - **54 losses: outplayed from early on.** We bank 5.8, they bank 15.1, 11.9 unopposed.
+  - **40 losses: lead lost late** (median turn 1000).
+    - One enemy trip, about 64 rounds long, banks 8.7 food on average (max 45, `20261103-232842-ab-0027`).
+    - Our ghost was within 3 steps only 10% of that trip.
+  - **79 ties:** 56 of them 0–0 deadlocks, concentrated on a few maps. Left as they are for now.
+- **`tools/raid_probe.py` on v1** (24 holdout games against dario/tracking/search/reflex). During enemy raids:
+  - both agents are deep in enemy territory carrying food about 50–65% of the time;
+  - the Raider is home but still attacking ("no trigger") 21% of the time when the invader carries 4+.
+- **Change:** `SmartAgent.home_hunt()`. An agent at home, not scared and carrying nothing defends against an invader carrying ≥ `HUNT_CARRY` (2) when it is within `HUNT_RADIUS` (10), when we reach its exit first, or always when its haul would erase our lead. Only the closer of two eligible agents goes. It's hooked into `RaiderAgent.decide`.
+- **Probe after:** Raider "home, no trigger" at 4+ went 21% → 7%.
+- **A/B against v1:** 0 crashes, max move 0.31 s.
+
+  | | train (`20261104-163637-ab`) | holdout (`20261104-165651-ab`) |
+  |---|---|---|
+  | Δ pts/game | −0.01 ± 0.06 | +0.00 ± 0.06 |
+  | by opponent | tracking +0.20, blitz −0.10, reflex −0.12 | dario +0.20, turtle +0.15, search −0.35 (2.1 SE) |
+  | kills | 0.37 → 0.43 | 0.36 → **0.50** |
+  | invader food banked against us | 9.34 → 9.04 | 11.46 → 11.03 |
+  | our banked | 15.00 → 14.79 | 16.71 → 16.59 |
+  | leads lost (`diagnose.py leads`) | 26 → 25 | 13 → 16 |
+
+- **Why no points:** the home hunt catches more invaders (+40% kills on holdout), but the decisive late raids are untouched. During them our ghosts were within 3 steps only 8–12% of the trip. Those raids happen while both our agents are away carrying food. An agent that passes home only briefly can't stop a 60–70-round raid deep in our half.
+- **Status:** saved as `strategies/experiments/f9_home_hunt.py`; `my_team.py` stays v1.
+- **Revive ideas:**
+  - Combine with a lead-protection guard (below), since kills are up.
+  - Sweep `HUNT_CARRY` 1 and `HUNT_RADIUS` 15.
 
 ### F4: Same path out of long spawn corridors
 - **Evidence:** RANDOM398056 was lost 3 of 4 times (−29, −13, −13). Both agents walk out together, never cross the border, and the opponent raids freely.

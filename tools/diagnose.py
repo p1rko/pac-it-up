@@ -3,6 +3,7 @@ Deeper per-situation breakdowns, computed by replaying stored games.
 
   python tools/diagnose.py unopposed <run_id> [--agent my_team v0]
   python tools/diagnose.py capsules <run_id> [--agent my_team v0]
+  python tools/diagnose.py leads <run_id> [--agent my_team v1]
 
 unopposed: every bite an invader takes from our food with none of our ghosts
 within 6 steps, split by what our two agents (first = Raider, second = Flex)
@@ -11,6 +12,7 @@ to big hauls.
 """
 
 import argparse
+import json
 import os
 import pickle
 import sys
@@ -139,15 +141,82 @@ def capsules(con, run_id, agents):
               f"{a['timer_left_at_kill'] / max(a['ghosts_eaten'], 1):.1f} |")
 
 
+def leads(con, run_id, agents):
+    """Losses after leading in the second half, and the enemy trip that decided
+    each one: the biggest bank after we last stood level or ahead."""
+    marks = ','.join('?' * len(agents))
+    rows = con.execute(f'SELECT ts.side, ts.agent_name, ts.points, g.timeline_json, g.replay_path FROM team_stats ts '
+                       f'JOIN games g USING (game_id) WHERE g.run_id = ? AND ts.agent_name IN ({marks})',
+                       (run_id, *agents)).fetchall()
+    agg = defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        a = agg[r['agent_name']]
+        a['games'].append(1)
+        if r['points'] != 0:
+            continue
+        sign = 1 if r['side'] == 'red' else -1
+        timeline = [sign * s for s in json.loads(r['timeline_json'])]
+        if not any(s > 0 for s in timeline[len(timeline) // 2:]):
+            continue
+        a['blown'].append(1)
+        last_level = max(k for k, s in enumerate(timeline) if s >= 0) * 40
+        with open(os.path.join(REPO_DIR, r['replay_path']), 'rb') as f:
+            rep = pickle.load(f)
+        info = MapInfo(rep['layout'])
+        state = GameState()
+        state.initialize(rep['layout'], 4)
+        state.data.timeleft = rep['length']
+        mine = (0, 2) if r['side'] == 'red' else (1, 3)
+        history = []
+        for i, action in rep['actions']:
+            state = state.generate_successor(i, action)
+            history.append(state)
+        best = None   # (turn, enemy, amount) of the biggest bank after last_level
+        for turn in range(max(last_level, 1), len(history)):
+            for e in (k for k in range(4) if k not in mine):
+                before = history[turn - 1].data.agent_states[e]
+                after = history[turn].data.agent_states[e]
+                banked = before.num_carrying > 0 and after.num_carrying == 0 and not after.is_pacman \
+                    and after.configuration.pos != after.start.pos
+                if banked and (best is None or before.num_carrying > best[2]):
+                    best = (turn, e, before.num_carrying)
+        if best is None:
+            continue
+        turn, e, amount = best
+        start = turn
+        while start > 0 and history[start - 1].data.agent_states[e].num_carrying > 0:
+            start -= 1
+        near, closest = 0, 999
+        for s in history[start:turn]:
+            ghosts = [info.d(_pos(s, e), _pos(s, k)) for k in mine if not s.data.agent_states[k].is_pacman]
+            closest = min([closest] + ghosts)
+            near += bool(ghosts) and min(ghosts) <= 3
+        a['haul'].append(amount)
+        a['rounds'].append((turn - start) / 4)
+        a['near'].append(near / max(turn - start, 1))
+        a['closest'].append(closest)
+
+    print(f'## Second-half leads lost in {run_id}\n')
+    print('| agent | games | leads lost | decisive haul | trip (rounds) | our ghost within 3 | '
+          'closest ghost (median) |\n|---|---|---|---|---|---|---|')
+    for name, a in agg.items():
+        n = max(len(a['haul']), 1)
+        closest = sorted(a['closest'])[len(a['closest']) // 2] if a['closest'] else '-'
+        print(f"| {name} | {len(a['games'])} | {len(a['blown'])} | {sum(a['haul']) / n:.1f} | "
+              f"{sum(a['rounds']) / n:.0f} | {100 * sum(a['near']) / n:.0f}% | {closest} |")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('kind', choices=['unopposed', 'capsules'])
+    parser.add_argument('kind', choices=['unopposed', 'capsules', 'leads'])
     parser.add_argument('run_id')
     parser.add_argument('--agent', nargs='+', default=['my_team'])
     args = parser.parse_args()
     if args.kind == 'unopposed':
         for agent in args.agent:
             unopposed(db.connect(), args.run_id, agent)
+    elif args.kind == 'leads':
+        leads(db.connect(), args.run_id, args.agent)
     else:
         capsules(db.connect(), args.run_id, args.agent)
 

@@ -106,3 +106,12 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Banked +1.3, margin +1.4, conceded unchanged. 0 crashes, max move 0.33 s.
 - Train was −0.00 ± 0.05. The holdout pool is all random mazes, where long trips home past the 15-step carry-limit cliff are common.
 - **Champion: v1 = `my_team@b41127c`**, frozen as `strategies/history/v1.py`. From now on, A/B new changes against v1.
+
+## Cycle 2: defence (2026-11-04)
+- **Loss analysis of v1** (480 games): 54 losses outplayed from early on, 40 losses from a lead lost late, and 79 ties (56 of them 0–0 deadlocks).
+  - In the late lead losses, one long enemy raid (about 64 rounds, 8.7 food) decides the game.
+  - New tools: `tools/raid_probe.py` and `tools/diagnose.py leads`.
+- **Attempt 1: F9, home hunt.** Neutral, code kept.
+  - Train −0.01 ± 0.06 (`20261104-163637-ab`), holdout +0.00 ± 0.06 (`20261104-165651-ab`).
+  - Kills up (holdout 0.36 → 0.50) and slightly less food conceded, but leads lost are unchanged: the decisive raids happen while both our agents are away.
+  - Saved as `strategies/experiments/f9_home_hunt.py`; champion is still v1.
