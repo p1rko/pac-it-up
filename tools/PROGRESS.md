@@ -70,10 +70,10 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Wins, ties and losses barely changed: the extra food widens margins of games already decided.
 - **Status:** kept in `my_team.py` on `f5-stalls` as the base for F5b. Champion is still v0 until F5a+F5b passes.
 
-## Cycle 1, attempt 5: F5b, commit to the reposition crossing (2026-11-04): checkpoint, A/B pending
+## Cycle 1, attempt 5: F5b, commit to the reposition crossing (2026-11-04): rejected, code kept
 - **Change:** see `FIXES.md`. Stall probe: stalled moves 37.5 → 14.8 per game.
-- **State:** committed on `f5-stalls` as an untested checkpoint. The train A/B was stopped at 220/480, so rerun it before deciding:
-
-  ```bash
-  PACKITUP_DEBUG=1 venv/bin/python tools/tournament.py ab my_team.py v0=strategies/history/v0.py --vs strategies/dario.py strategies/tracking.py strategies/search.py strategies/reflex.py strategies/blitz.py strategies/turtle.py --maps 20 --purpose "F5a+F5b: commit to banking and to the reposition crossing"
-  ```
+- **A/B (train), `20261104-110303-ab`** (F5a+F5b against v0): Δ **−0.13 ± 0.11** pts/game; turtle −0.75.
+  - Attack up: idle_attack 70 → 26, banked 14.1 → 16.4.
+  - Defence down by more: invader food banked against us 9.0 → 11.9, "invader-unopposed" losses + ties 32 → 61.
+- **Lesson:** a stalled attacker standing at the border was doing unpaid guard duty. Stall fixes have to keep someone near home, or move the stalled agent into real defence.
+- **Status:** saved as `strategies/experiments/f5b_crossing_commit.py`. `my_team.py` is back to F5a; champion is still v0. Revive ideas are in `FIXES.md` (Raider-only commitment, stalled Flex defends, shorter commitment, skip it against two guards).

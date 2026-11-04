@@ -70,8 +70,6 @@ class SmartAgent(CaptureAgent):
     SEARCH_TIME = 0.30      # seconds of alpha-beta per move (limit is 1 s on a slower machine)
     TURN_BUDGET = 0.75      # hard stop for everything we do in one turn
     FIGHT_RANGE = 6         # search when an opponent is this close
-    COMMIT_TURNS = 12       # keep a crossing chosen by reposition() for this many turns
-    STANDOFF_RADIUS = 4     # ... and pick one further than this from where we got stuck
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -106,7 +104,6 @@ class SmartAgent(CaptureAgent):
         self._compute_dead_ends()
         self.home_dist_cache = {}
         self.banking = False    # decided to bank: keep going home instead of re-deciding
-        self.crossing = None    # (border cell, turn it expires, standoff cell) from reposition()
 
         # Fresh shared state every game (agents are reused across games with -n).
         TEAM_INFO[self.red] = {
@@ -641,13 +638,8 @@ class SmartAgent(CaptureAgent):
             self.banking = True
             return self.go_home(game_state, cost_fn, blocked)
 
-        # 5. Eat safe food, avoiding the teammate's target. After a standoff,
-        #    finish the walk to the new crossing first.
+        # 5. Eat safe food, avoiding the teammate's target.
         targets = self.safe_food(my_pos, food, ghosts)
-        if self.crossing:
-            act = self.follow_crossing(game_state, targets, cost_fn, blocked)
-            if act:
-                return act
         mate_target = self.mate_target()
         if mate_target is not None and len(targets) > 3:
             targets = [f for f in targets if self.dist(f, mate_target) > 4] or targets
@@ -694,9 +686,7 @@ class SmartAgent(CaptureAgent):
     def reposition(self, game_state, ghosts, cost_fn=None, blocked=frozenset()):
         """
         Blocked by a guard: slide along our border to the crossing point that
-        is furthest from every enemy ghost, seen or believed, and away from
-        this standoff. The choice is kept (follow_crossing) so we don't step
-        back in as soon as the food looks safe again.
+        is furthest from every enemy ghost, seen or believed.
         """
         my_pos = game_state.get_agent_position(self.index)
         guards = list(ghosts) + [self.most_likely(e) for e in self.get_opponents(game_state)
@@ -706,32 +696,10 @@ class SmartAgent(CaptureAgent):
             return self.go_home(game_state, cost_fn, blocked)
 
         def appeal(b):
-            v = min(self.dist(g, b) for g in guards) - 0.3 * self.dist(my_pos, b)
-            if self.dist(b, my_pos) <= self.STANDOFF_RADIUS:
-                v -= 10
-            return v
+            return min(self.dist(g, b) for g in guards) - 0.3 * self.dist(my_pos, b)
         target = max(self.home_border, key=appeal)
-        self.crossing = (target, len(self.observation_history) + self.COMMIT_TURNS, my_pos)
         act = self.step_towards(game_state, [target], cost_fn, blocked)
         return act or self.go_home(game_state, cost_fn, blocked)
-
-    def follow_crossing(self, game_state, targets, cost_fn=None, blocked=frozenset()):
-        """
-        Keep heading for the crossing reposition() chose until we reach it or
-        it expires, only taking safe food on the way that is away from the
-        standoff. None once the commitment is over.
-        """
-        cell, expires, standoff = self.crossing
-        my_pos = game_state.get_agent_position(self.index)
-        if my_pos == cell or len(self.observation_history) >= expires:
-            self.crossing = None
-            return None
-        near = [f for f in targets if self.dist(my_pos, f) <= 2
-                and self.dist(f, standoff) > self.STANDOFF_RADIUS]
-        act = self.step_towards(game_state, near or [cell], cost_fn, blocked)
-        if act is None:
-            self.crossing = None
-        return act
 
     def safe_food(self, my_pos, food, ghosts):
         """Food not inside a pocket where a ghost could trap us."""

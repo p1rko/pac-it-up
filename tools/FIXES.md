@@ -59,11 +59,40 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
 - **Why no points:** the extra food mostly widens margins of games that were already decided (W-T-L 139-47-54 → 138-49-53). The stalls that decide close games are the guard standoffs, which is F5b's target.
 - **Status:** kept in `my_team.py` on `f5-stalls` (copy in `strategies/experiments/f5a_bank_commit.py`). F5a+F5b will be A/B'd against v0 together.
 
-#### F5b: commit to a crossing: implemented, A/B pending
+#### F5b: commit to a crossing: rejected (−0.13 ± 0.11), code kept to revive
 - **Change:** when `reposition()` fires it stores its crossing in `self.crossing`, and `follow_crossing()` keeps heading there until we reach it or `COMMIT_TURNS` (12) pass. On the way it only takes safe food within 2 steps that is more than `STANDOFF_RADIUS` (4) from the standoff. Crossings within 4 of the standoff get a −10 appeal penalty, so we really move along the border.
 - **Target:** the "food ↔ reposition" and "reposition ↔ reposition" stalls, `idle_attack`, and points against search/tracking/reflex.
 - **Probe (`stall_probe.py --maps 4`, F5a+F5b):** stalled moves 37.5 → **14.8** per game; "food ↔ reposition" is gone. What is left is mostly "food" alone (62%): the food target changes every turn, a possible F5c.
-- **A/B:** the first train run was stopped at 220/480 (incomplete, ignore it). **Next step: rerun the train A/B of F5a+F5b against v0**, then holdout if it passes.
+- **A/B (train), `20261104-110303-ab`** (F5a+F5b against v0; the earlier run stopped at 220/480 is incomplete, ignore it): 480 games, 0 crashes, 0 warnings, max move 0.32 s.
+  - Δ **−0.13 ± 0.11** pts/game: rejected. W-T-L 137-48-55 → 131-35-74.
+  - By opponent: dario +0.23, reflex +0.05, tracking +0.03, search −0.15, blitz −0.17, **turtle −0.75 ± 0.27**.
+- **Attack got much better:**
+
+  | metric (per game) | v0 | F5a+F5b |
+  |---|---|---|
+  | idle_attack | 70.1 | **25.9** |
+  | banked | 14.12 | **16.37** |
+  | banked vs search / tracking / dario | 11.6 / 13.1 / 18.0 | **16.2 / 18.0 / 21.8** |
+
+- **…but defence got worse by more:**
+
+  | metric (per game) | v0 | F5a+F5b |
+  |---|---|---|
+  | invader food banked against us | 9.02 | **11.85** |
+  | unopposed food | 8.22 | 9.82 |
+  | "invader-unopposed" losses + ties | 32 | **61** |
+  | "both agents home but far" share of unopposed bites | 18% | 26% |
+
+  Conceded food rose against **every** opponent (+2 to +4.5).
+- **Why:**
+  - **A stalled attacker was a free border guard.** In v0 a stalled agent stood at the border with nothing carried. Flex in that spot reacts to any invader within `DEFEND_RADIUS`, and the Raider's `hunt_nearby_invader` catches anything close. F5b sends them along the border to a far crossing and then deep, often carrying food, which switches Flex's defence off. This is the same lesson as F1/F2 from the other side: our defence mostly comes from agents that happen to be near home.
+  - **Turtle (two defenders):** banked 17.2 → 13.9, food lost in deaths 1.95 → 3.05, conceded 2.5 → 7.0, losses 5 → 13. Committing to a crossing for 12 turns walks into the second guard, and turtle's counter-raids get through while we're away.
+- **Status:** saved as `strategies/experiments/f5b_crossing_commit.py`; `my_team.py` back to F5a.
+- **Ideas to revive it:**
+  1. **Raider only.** Keep Flex's stall-at-the-border as it is (it doubles as a guard), or have a stalled Flex switch to `defend()` (the original F5 idea). Give only the Raider the crossing commitment.
+  2. **Shorter or weaker commitment:** `COMMIT_TURNS` 4–6, and no −10 far-crossing penalty, so the agent stays near home.
+  3. **Don't commit against two guards** (turtle-like: both enemies are ghosts on their side).
+  4. Measure defence with `diagnose.py unopposed` alongside `idle_attack`, since the two trade off.
 
 ## Parked (neutral, worth combining later)
 
