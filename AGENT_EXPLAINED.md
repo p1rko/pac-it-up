@@ -78,6 +78,11 @@ Priority list, top to bottom:
    carrying food.
 4. **Carry limit:** go home after 7 dots (5 if home is far). The limit is raised while the
    guards are scared, and is unlimited if they stay scared long enough for us to get home.
+   **Once we decide to bank, we stick to it** (`self.banking`) until we are home or carry
+   nothing. Before v1 the limit changed as we moved (7 → 5 beyond 15 steps from home), so an
+   attacker carrying 5–6 flipped between eating and going home on every move. Only steps 1–3
+   can interrupt the walk home. The commitment is dropped when the guards are scared long enough
+   for the unlimited mode.
 5. **Pick a target dot** from the *safe* food: no ghost is closer to it than we are, and no ghost
    can cut us off at the pocket exit. Prefer dots that are close to us, far from where the guards
    probably are, and (when carrying) not far from home. Avoid the teammate's target so the two
@@ -149,6 +154,27 @@ Lessons:
 3. Flex defence gets most of both. The adaptive rule turned the blitz matchup from 5-6 into 6-2-4. With 12 games per row, differences of 1-2 wins are within noise.
 
 Timing: worst observed move 0.30 s (limit 1 s), and no crashes in debug mode.
+
+### Optimisation cycles (`tools/`, 480-game paired A/B runs against the previous version)
+Since then, versions are compared with `tools/tournament.py ab` against the gauntlet of dario,
+tracking, search, reflex, blitz and turtle: 20 maps, both colours, paired seeds. A version must
+pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.md` and
+`tools/FIXES.md`.
+
+| Version | Change | Train Δ pts/game | Holdout Δ pts/game |
+|---|---|---|---|
+| v0 | baseline of this log (2.14 pts/game, 1st of 8 in the Cycle 0 round-robin) | — | — |
+| **v1** | commit to banking (no eat ↔ go-home flip at the carry-limit cliff) | −0.00 ± 0.05 | **+0.24 ± 0.06** (W-T-L 150-29-61 → 169-30-41, better against every opponent) |
+
+v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
+on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
+cliff are common, which is likely why the gain shows there and not on the train mix of fixed
+layouts.
+
+Lessons from the rejected attempts (code kept in `strategies/experiments/`):
+- Recalling an attacker to defend, or attacking shallower, costs more food than it saves.
+- A stalled attacker at the border also guards it. Removing stalls without keeping someone near
+  home trades food evenly.
 
 ---
 

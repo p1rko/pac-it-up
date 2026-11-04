@@ -99,3 +99,10 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
 - **A/B (train), `20261104-150542-ab`:** Δ **+0.03 ± 0.07** pts/game; blitz only +0.07, so F5c's +0.68 didn't come back.
 - **Status:** saved as `strategies/experiments/f5e_adaptive_guard.py`; `my_team.py` back to F5a.
 - **F5 overall:** five variants, none significant on points. Pooled over the four runs containing F5a: margin +0.25, banked +1.0, conceded +0.8.
+
+## Cycle 1 result: v1 = F5a accepted (2026-11-04)
+- **Holdout A/B, `20261104-154525-ab`:** F5a against v0 gives Δ **+0.24 ± 0.06** pts/game.
+  - W-T-L 150-29-61 → 169-30-41, positive against every opponent (dario +0.60, blitz +0.30, tracking +0.28).
+  - Banked +1.3, margin +1.4, conceded unchanged. 0 crashes, max move 0.33 s.
+- Train was −0.00 ± 0.05. The holdout pool is all random mazes, where long trips home past the 15-step carry-limit cliff are common.
+- **Champion: v1 = `my_team@b41127c`**, frozen as `strategies/history/v1.py`. From now on, A/B new changes against v1.

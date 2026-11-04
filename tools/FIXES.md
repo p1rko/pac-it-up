@@ -46,7 +46,13 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
   | reposition ↔ reposition with search | ~11% | `reposition()` re-picks its crossing every turn from shifting beliefs |
   | going home while chased | ~12% | really blocked by a ghost (left alone) |
 
-#### F5a: commit to banking: neutral on points, target hit, kept as the base for F5b
+#### F5a: commit to banking: **accepted as v1** (holdout +0.24 ± 0.06)
+- **Holdout A/B, `20261104-154525-ab`** (all-random holdout maps, 480 games, 0 crashes, 0 warnings, max move 0.33 s):
+  - Δ **+0.24 ± 0.06** pts/game: passes the gate. W-T-L 150-29-61 → 169-30-41.
+  - By opponent, every one positive: dario +0.60 ± 0.24, blitz +0.30, tracking +0.28, search +0.15, reflex +0.07, turtle +0.05.
+  - Banked 15.55 → 16.86, margin +4.0 → +5.4, food lost in deaths 1.09 → 0.81, conceded unchanged (11.55 → 11.50).
+  - Likely reason it shows on holdout but not train: holdout maps are all random mazes, where trips home beyond 15 steps (the carry-limit cliff) are common. The train mix includes small fixed layouts.
+- Snapshot `strategies/history/v1.py` (`b41127cc2a`). Earlier train-only notes below.
 - **Change:** `self.banking` is set when the carry limit or the "bank first" shortcut sends us home. While it is set, we keep going home. It clears at home, at carrying 0, or when the enemies are scared long enough for the no-limit mode. Steps 1–3 (out of time, scared prey, chased) still come first.
 - **Probe after:** the flip at 15–16 from home went from ~690 stalled moves to 2; stalled moves 65.7 → 53.7 per game.
 - **`tools/stall_probe.py --maps 4` on F5a** (its own seeds, so the totals differ from above): 37.5 stalled moves per game. **78% are now "food | reposition"** (Raider 46%, Flex 32%), 17% are "food" alone (the target changing each turn), and the go-home flip is under 3%.
@@ -272,7 +278,9 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 - **Idea:** give each agent its own crossing (upper and lower half of the border), and keep Flex home when the trip to the border is long.
 
 ## Fixed
-(none yet)
+
+### F5a: banking flip at the carry-limit cliff: v1 (2026-11-04)
+Commit to banking once the carry limit sends us home. Holdout +0.24 ± 0.06 pts/game (`20261104-154525-ab`). Details are under F5 in "In progress"; F5's crossing standoff part is still open.
 
 ## Rejected
 
