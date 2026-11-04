@@ -86,3 +86,9 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
 - **Diagnosis:** the extra food conceded comes while we're **ahead**, so it's Flex's guard mode, not the press. Bites conceded while behind actually fell against dario, blitz and reflex/turtle.
 - **Status:** saved as `strategies/experiments/f5c_score_aware.py`; `my_team.py` back to F5a.
 - **Next:** F5d, which is F5c with the press only (Flex keeps v0's stall).
+
+## Cycle 1, attempt 7: F5d, press only (2026-11-04): neutral, code kept
+- **A/B (train), `20261104-120346-ab`:** Δ **−0.03 ± 0.06** pts/game. Stalls 70 → 47, banked +1.1, conceded +1.0. Losses 54 → 59.
+- **Finding:** F5c's blitz gain came from Flex's guard mode, not from pressing. Pressing when behind banks more but also concedes more, so results don't flip.
+- **Status:** saved as `strategies/experiments/f5d_press_only.py`; `my_team.py` back to F5a.
+- **F5 overall:** four variants, none above noise. Stall turns double as guard turns, so cutting them trades food evenly. The summary table and revive ideas are in `FIXES.md` (opponent-adaptive guard mode is the most promising).

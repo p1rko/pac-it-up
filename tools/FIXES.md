@@ -131,6 +131,41 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
 - **Status:** saved as `strategies/experiments/f5c_score_aware.py`; `my_team.py` back to F5a.
 - **Next:** F5d = F5c without Flex's guard mode (`STANDOFF_DEFENDS = False` on Flex), i.e. press when behind and stall like v0 otherwise. Then watch clips of Flex's guard mode against search to see why it leaks.
 
+#### F5d: press only (F5c without Flex's guard mode): neutral, code kept
+- **Change:** F5c with `STANDOFF_DEFENDS` left False on Flex. When behind (or level late) and not facing two guards, both agents commit to a crossing; otherwise both stall like v0.
+- **A/B (train), `20261104-120346-ab`:** 480 games, 0 crashes, 0 warnings, max move 0.40 s.
+  - Δ **−0.03 ± 0.06** pts/game: neutral. W-T-L 137-49-54 → 136-45-59.
+  - By opponent: dario +0.20, blitz −0.03, search −0.07, tracking −0.07, reflex −0.10, turtle −0.10 (all within 1.1 SE).
+  - idle_attack 69.7 → 47.4; banked 14.08 → 15.14; invader food banked against us 9.02 → 10.04.
+- **Food conceded per game by score state** (enemy bites on our food):
+
+  | run | agent | ahead | behind | level |
+  |---|---|---|---|---|
+  | F5c | v0 | 5.8 | 2.3 | 3.5 |
+  | F5c | F5c | 7.5 | 2.1 | 3.5 |
+  | F5d | v0 | 5.9 | 2.3 | 3.5 |
+  | F5d | F5d | 6.4 | 2.8 | 3.7 |
+
+- **What this says:**
+  - **The press alone doesn't flip results.** Pressing when behind banks more but concedes more too (2.3 → 2.8 while behind). Losses didn't drop (54 → 59).
+  - **F5c's blitz gain (+0.68) came from Flex's guard mode, not from the press**, because F5d lost it (−0.03). So guard mode helps against attack-heavy opponents (blitz, dario) and hurts against single-attacker border teams (search, tracking).
+- **Status:** saved as `strategies/experiments/f5d_press_only.py`; `my_team.py` back to F5a.
+
+#### F5 summary (all on top of or including F5a)
+| variant | Δ pts/game | idle_attack | banked | conceded |
+|---|---|---|---|---|
+| v0 | — | ~70 | ~14.1 | ~9.0 |
+| F5a bank commit | −0.00 ± 0.05 | 51 | 15.0 | 9.3 |
+| F5b crossing commit | −0.13 ± 0.11 | 26 | 16.4 | 11.9 |
+| F5c score-aware + Flex guard | +0.00 ± 0.11 | 37 | 15.1 | 9.9 |
+| F5d score-aware, press only | −0.03 ± 0.06 | 47 | 15.1 | 10.0 |
+
+**Lesson:** stall turns are not wasted turns in this field. Every stall turn removed turns into roughly equal food for both sides, because the stalled agent was guarding. Removing stalls alone doesn't win games; a gain has to come from better defence at the same time.
+
+**Revive ideas:**
+- **Opponent-adaptive guard mode:** Flex guards after a standoff only against opponents that attack a lot (`TEAM_INFO['invader_turns']`, e.g. blitz/dario), and stalls otherwise.
+- Find out why `defend()` leaks against search/tracking compared with a stalled Flex at the border, using `watch.py`.
+
 ## Parked (neutral, worth combining later)
 
 ### F6: Spend the scared-guard window on food, not on eating scared ghosts (user's fix)
