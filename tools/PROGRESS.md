@@ -77,3 +77,12 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Defence down by more: invader food banked against us 9.0 → 11.9, "invader-unopposed" losses + ties 32 → 61.
 - **Lesson:** a stalled attacker standing at the border was doing unpaid guard duty. Stall fixes have to keep someone near home, or move the stalled agent into real defence.
 - **Status:** saved as `strategies/experiments/f5b_crossing_commit.py`. `my_team.py` is back to F5a; champion is still v0. Revive ideas are in `FIXES.md` (Raider-only commitment, stalled Flex defends, shorter commitment, skip it against two guards).
+
+## Cycle 1, attempt 6: F5c, score-aware stalls (user's idea + F5b ideas 1 and 3) (2026-11-04): neutral, code kept
+- **Change:** press at standoffs only when behind (or level late) and not facing two guards; otherwise the Raider stalls as in v0 and Flex guards home for 12 turns.
+- **A/B (train), `20261104-114313-ab`:** Δ **+0.00 ± 0.11** pts/game.
+  - Gains: blitz +0.68, dario +0.40, turtle +0.15.
+  - Losses: search −0.68, tracking −0.38.
+- **Diagnosis:** the extra food conceded comes while we're **ahead**, so it's Flex's guard mode, not the press. Bites conceded while behind actually fell against dario, blitz and reflex/turtle.
+- **Status:** saved as `strategies/experiments/f5c_score_aware.py`; `my_team.py` back to F5a.
+- **Next:** F5d, which is F5c with the press only (Flex keeps v0's stall).

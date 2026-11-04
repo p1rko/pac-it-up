@@ -94,6 +94,43 @@ Gauntlet: `strategies/dario.py strategies/tracking.py strategies/search.py strat
   3. **Don't commit against two guards** (turtle-like: both enemies are ghosts on their side).
   4. Measure defence with `diagnose.py unopposed` alongside `idle_attack`, since the two trade off.
 
+#### F5c: score-aware stalls (revives F5b with ideas 1 + 3 and the user's "press when losing"): neutral, code kept
+- **Idea (user's):** a stall is fine when we're ahead, because the stalled agent guards the border, but bad when we're behind. W = 3, T = 1, L = 0, so conceding costs little when already losing, while extra food can flip the result.
+- **Change** (on top of F5a):
+  - `press()`: we're behind, or level with fewer than `PRESS_TIE_MOVES` (150) own moves left.
+  - `two_guards()`: both enemies are ghosts believed within `GUARD_DEPTH` (8) of our border.
+  - At a standoff, when pressing and not facing two guards, both agents commit to a crossing (F5b's `follow_crossing`); the commitment drops once we stop pressing.
+  - Otherwise the Raider stalls as in v0, and Flex (`STANDOFF_DEFENDS`) calls `defend()` for `COMMIT_TURNS` (12) turns.
+- **A/B (train), `20261104-114313-ab`:** 480 games, 0 crashes, 0 warnings, max move 0.32 s.
+  - Δ **+0.00 ± 0.11** pts/game: neutral. W-T-L 140-48-52 → 141-45-54.
+  - The split by opponent is large and opposite:
+
+    | vs | Δ points/game |
+    |---|---|
+    | blitz | **+0.68 ± 0.24** |
+    | dario | +0.40 ± 0.28 |
+    | turtle | +0.15 (F5b's −0.75 fixed) |
+    | reflex | −0.17 |
+    | tracking | −0.38 ± 0.30 |
+    | search | **−0.68 ± 0.26** |
+
+  - idle_attack 69.9 → 36.7; banked 14.22 → 15.07; invader food banked against us 8.94 → 9.86.
+- **Where the extra food conceded comes from.** Enemy bites on our food per game, split by the score at the time:
+
+  | vs | agent | ahead | behind | level early | level late |
+  |---|---|---|---|---|---|
+  | search | v0 | 6.4 | 1.2 | 2.2 | 0 |
+  | search | F5c | **10.0** | 2.8 | 3.1 | 0.8 |
+  | reflex/turtle | v0 | 5.6 | 2.5 | 2.9 | 0.5 |
+  | reflex/turtle | F5c | **9.8** | 1.7 | 2.4 | 0.2 |
+  | dario | v0 | 10.7 | 4.3 | 5.0 | 1.0 |
+  | dario | F5c | 11.0 | **2.5** | 3.1 | 0.8 |
+
+  - The leak is **while we're ahead**, when F5c doesn't press. Only Flex's guard mode differs from v0 there, so a guarding Flex defends *worse* than a Flex stalled at the border. Possible reasons: `defend()` walks to `patrol_point` away from the invader's crossing, or Flex's 12-turn guard / attack cycle leaves gaps.
+  - The press part looks good: bites conceded while behind fell against dario, blitz and reflex/turtle, and points rose against blitz and dario.
+- **Status:** saved as `strategies/experiments/f5c_score_aware.py`; `my_team.py` back to F5a.
+- **Next:** F5d = F5c without Flex's guard mode (`STANDOFF_DEFENDS = False` on Flex), i.e. press when behind and stall like v0 otherwise. Then watch clips of Flex's guard mode against search to see why it leaks.
+
 ## Parked (neutral, worth combining later)
 
 ### F6: Spend the scared-guard window on food, not on eating scared ghosts (user's fix)
