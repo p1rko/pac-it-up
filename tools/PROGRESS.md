@@ -133,3 +133,4 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - New tool `tools/role_probe.py`: per-role Pacman turns are unchanged, and banked −0.33 ± 0.21 is noise.
   - F11's defence gain is strong: conceded **−1.11 ± 0.22 (z −5.0)**, margin **+0.78 ± 0.23 (z +3.4)**; points only reach z 1.86.
   - Next: the user decides on F11, or we test F11 + F9 home hunt.
+- **v2 = F11** (2026-11-06): the user accepted F11 on its margin and defence evidence (margin z 3.4, conceded z −5.0; points z 1.86). Frozen as `strategies/history/v2.py` on branch `v2-f11`. New changes are A/B'd against v2.

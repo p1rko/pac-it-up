@@ -12,7 +12,8 @@ Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FI
   - `f9-home-hunt`: local, not pushed, at `3844ea5` + this file. Holds the F9 record, `tools/raid_probe.py` and `diagnose.py leads`. `my_team.py` there is still v1. Merge it into `optimize-loop` with the next accepted version, or now if the tools are wanted there.
   - `f10-protect-lead`: local, not pushed, branched from `f9-home-hunt`. Holds the F10 record (rejected).
   - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`.
-  - `f11b-race-when-carrying`: local, not pushed, branched from `f11-defend-catch`. Holds the F11b record (z = 1.47); `my_team.py` is v1. **Newest branch; work from here.**
+  - `f11b-race-when-carrying`: local, not pushed, branched from `f11-defend-catch`. Holds the F11b record (z = 1.47).
+  - `v2-f11`: local, not pushed. `my_team.py` = **v2 = F11**, frozen as `strategies/history/v2.py` (the user accepted it on margin, 2026-11-06). **Newest branch; work from here; A/B new changes against v2.**
   - `f5-stalls`: local; already merged into `optimize-loop`.
   - `f6-harvest`: local; the user's scared-window idea (F6).
 - **Not ours to commit:** the user's edits to `CLAUDE.md` and `tools/AGENTS_PROFILE.md`, `tools/manual_analysis.md`, and the dirty `pacman-contest` submodule pointer.

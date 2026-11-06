@@ -55,8 +55,12 @@ When a visible enemy is within 6 steps (a ghost that can eat our Pacman, or an i
 our ghost), the planned move is checked by **iterative-deepening alpha-beta** over the real
 game rules. It includes us **and every nearby enemy**, so two ghosts trapping us are both
 modelled. The evaluation rewards surviving, keeping the food we carry, getting home and eating
-capsules. It punishes standing in pockets near ghosts. For a defender, it rewards being between
-the invader and its way home. Search is **time-boxed** to 0.3 s per move.
+capsules. It punishes standing in pockets near ghosts. For a defender (since v2) it scores a
+**race**: what the invader can reach before any of our home ghosts (the searcher, plus a teammate
+held where it stands). It is penalised for an exit over the border it reaches first, its lead to
+its best exit, our food and capsules it reaches first, and our being scared. This makes our
+ghosts get in front of an invader instead of trailing it, since an equal-speed Pacman can't be
+caught from behind. Search is **time-boxed** to 0.3 s per move.
 
 ### 2.5 Safety against forfeits
 The rules forfeit a game after 3 slow moves or any exception. So:
@@ -165,6 +169,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 |---|---|---|---|
 | v0 | baseline of this log (2.14 pts/game, 1st of 8 in the Cycle 0 round-robin) | — | — |
 | **v1** | commit to banking (no eat ↔ go-home flip at the carry-limit cliff) | −0.00 ± 0.05 | **+0.24 ± 0.06** (W-T-L 150-29-61 → 169-30-41, better against every opponent) |
+| **v2** | F11: defender fight evaluation races the invader to exits, food and capsules | +0.09 ± 0.08 | +0.06 ± 0.06, unseen holdout +0.07 ± 0.06; pooled points z 1.86, **margin +0.78 (z 3.4), food conceded −1.11 (z −5.0)**; accepted by the user on margin |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
