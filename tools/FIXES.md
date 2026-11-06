@@ -202,6 +202,25 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 - **Opponent-adaptive guard mode:** Flex guards after a standoff only against opponents that attack a lot (`TEAM_INFO['invader_turns']`, e.g. blitz/dario), and stalls otherwise.
 - Find out why `defend()` leaks against search/tracking compared with a stalled Flex at the border, using `watch.py`.
 
+### F12: F9 home hunt on top of v2: rejected (2026-11-06)
+- **Idea:** F9's home hunt made 40% more kills on v1 but conceded the same, because our ghosts couldn't finish a chase. v2 (F11) fixed catching, so the guess was that the two would stack.
+- **Change:** v2 + exactly F9's code (`HUNT_CARRY` 2, `HUNT_RADIUS` 10, `SmartAgent.home_hunt()`, called in `RaiderAgent.decide` after `hunt_nearby_invader`). Branch `f12-v2-home-hunt`, saved as `strategies/experiments/f12_v2_home_hunt.py`.
+- **A/B against v2** (480 games each, 0 crashes, 0 warnings, max move 0.36 s):
+
+  | batch | run | Δ points/game | margin | banked | conceded | kills |
+  |---|---|---|---|---|---|---|
+  | train | `20261106-210014-ab` | +0.05 ± 0.07 | +0.28 | −0.45 | −0.72 | +0.10 |
+  | holdout | `20261106-212044-ab` | −0.05 ± 0.05 | −0.15 | −0.26 | −0.11 | +0.08 |
+  | unseen holdout (offset 20) | `20261106-214120-ab` | **−0.12 ± 0.06** | −0.64 | −0.63 | +0.01 | +0.06 |
+  | **pooled** | | **−0.04 ± 0.035 (z −1.1)** | −0.17 | −0.45 | −0.27 | +0.08 |
+
+  Unseen batch by opponent: blitz −0.30 ± 0.14, reflex −0.25, tracking −0.17, search −0.07, dario +0.03, turtle +0.03.
+- **Why it failed:** kills and food denied went up again (+0.08 kills, +0.35 to +0.55 food denied per game), but conceded food barely moved once v2 was the base. v2's race evaluation already wins most of the chases a home hunt would start, so the hunt mostly adds attack turns lost: banked fell in all three batches (−0.45 on average). Against blitz (two attackers, so the hunt fires often) it was worst.
+- **Lesson:** defence add-ons that pull an attacker home only pay when the existing defence is losing those invaders. After F11 the remaining conceded food comes from invaders nobody is near (`invader-unopposed`), not from chases we lose.
+- **Revive ideas:**
+  - Hunt only with an agent that is already a ghost at home and not carrying (no turning back), and only for invaders carrying 5+.
+  - Gate it on the opponent: only against teams with one dedicated attacker, where one hunter can't be overloaded.
+
 ## Parked (neutral, worth combining later)
 
 ### F11c: measuring F11's "attack cost": there isn't one (analysis, 2026-11-06)

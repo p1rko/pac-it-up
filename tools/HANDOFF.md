@@ -3,7 +3,7 @@
 Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
 
 ## State in one glance
-- **Champion: v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
+- **Champion: v2** = F11, `strategies/history/v2.py` (branch `v2-f11`, local). Previous: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
   - v1 = v0 + **F5a commit to banking**: once the carry limit sends an agent home, it keeps going home.
   - Holdout A/B against v0: **+0.24 ± 0.06** pts/game, better against every opponent.
 - **Branches:**
@@ -13,7 +13,8 @@ Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FI
   - `f10-protect-lead`: local, not pushed, branched from `f9-home-hunt`. Holds the F10 record (rejected).
   - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`.
   - `f11b-race-when-carrying`: local, not pushed, branched from `f11-defend-catch`. Holds the F11b record (z = 1.47).
-  - `v2-f11`: local, not pushed. `my_team.py` = **v2 = F11**, frozen as `strategies/history/v2.py` (the user accepted it on margin, 2026-11-06). **Newest branch; work from here; A/B new changes against v2.**
+  - `v2-f11`: local, not pushed. `my_team.py` = **v2 = F11**, frozen as `strategies/history/v2.py` (the user accepted it on margin, 2026-11-06). **Work from here; A/B new changes against v2.**
+  - `f12-v2-home-hunt`: local, branched from `v2-f11`. Holds the F12 record (rejected). Newest branch for records.
   - `f5-stalls`: local; already merged into `optimize-loop`.
   - `f6-harvest`: local; the user's scared-window idea (F6).
 - **Not ours to commit:** the user's edits to `CLAUDE.md` and `tools/AGENTS_PROFILE.md`, `tools/manual_analysis.md`, and the dirty `pacman-contest` submodule pointer.
@@ -81,12 +82,14 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F10 | protect the lead: Flex guards full-time when ahead with < 150 moves left | train −0.13, holdout −0.09; leads lost **up** (26→32, 13→20) | `experiments/f10_protect_lead.py` |
 | F11 | defender fight eval races the invader to exits/food/capsules (both home ghosts) | train +0.09, holdout +0.06, unseen +0.07; pooled **+0.072 ± 0.039 (z 1.86)**, parked; conceded −0.6 to −1.6, banked −0.6 | `experiments/f11_race_eval.py` |
 | F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
+| **v2** | **= F11, accepted by the user on margin** | | `history/v2.py` |
+| F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
-1. **Decide F11 (user).** F11c showed F11's "attack cost" is noise (banked −0.33 ± 0.21), while its defence gain is very significant: conceded −1.11 ± 0.22 (z −5.0), margin +0.78 ± 0.23 (z +3.4). Points only reach z 1.86. Either accept F11 on margin (a rule change) or stack a defence add-on on F11 and test it (next item).
-2. **F11 + F9 home hunt** (F9 made more kills but couldn't finish raids; F11 fixes catching). Same three batches, pooled.
-3. **F10 revive on top of F11:** guard only a big lead (≥ 5) very late (< 75 moves), plus F9's home hunt.
-4. **F9 tuning:** `HUNT_CARRY` 1 and `HUNT_RADIUS` 15.
+1. **F10 revive on top of v2:** guard only a big lead (≥ 5) very late (< 75 moves). Without the home hunt (F12 showed it costs banking on v2).
+2. **Unopposed invaders:** after v2 most conceded food comes from invaders no ghost is near. Measure with `diagnose.py unopposed` on the F12 runs (v2 side) where both our agents are when it happens.
+3. **F12 revive (cheap):** home hunt only by an agent already a ghost at home, only for invaders carrying 5+.
+4. **Push v2 (user):** v2 is local only; ask before pushing or merging into `optimize-loop`/`main`.
 5. **0–0 deadlocks (deferred by the user):** in a 0–0 game after the halfway point, force one food through (both agents on one crossing, or a capsule). One food turns 1 point into 3. 56 games per 480 are affected.
 6. **Outplayed-early losses:** find out why `defend()` concedes more against search than a Flex stalled at the border (seen in F5c). Watch clips with `watch.py`.
 7. **Older leads:**

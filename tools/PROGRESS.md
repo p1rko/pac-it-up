@@ -134,3 +134,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - F11's defence gain is strong: conceded **−1.11 ± 0.22 (z −5.0)**, margin **+0.78 ± 0.23 (z +3.4)**; points only reach z 1.86.
   - Next: the user decides on F11, or we test F11 + F9 home hunt.
 - **v2 = F11** (2026-11-06): the user accepted F11 on its margin and defence evidence (margin z 3.4, conceded z −5.0; points z 1.86). Frozen as `strategies/history/v2.py` on branch `v2-f11`. New changes are A/B'd against v2.
+- **Attempt 5: F12, v2 + F9 home hunt** (2026-11-06). Rejected.
+  - Against v2: train +0.05, holdout −0.05, unseen −0.12 ± 0.06; pooled **−0.04 ± 0.035 (z −1.1)**.
+  - Kills up again, but conceded barely moved and banked fell 0.45 per game: v2 already wins the chases the hunt would start.
+  - Saved as `strategies/experiments/f12_v2_home_hunt.py`; champion stays v2.
