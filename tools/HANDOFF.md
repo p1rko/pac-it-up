@@ -1,8 +1,9 @@
 # Handoff: where the optimisation stands and what to do next
 
-Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
+Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
 
 ## State in one glance
+- **Resume here (2026-11-07):** work on `optimize-loop` (pushed). `my_team.py` = v2 = `strategies/history/v2.py`. The last session ended after F14 (capsule guard, parked at z 1.6). The user hadn't picked the next step: proactive capsule cover (recommended), calmer opening, or accepting F14 on margin (not recommended: blitz −0.14). Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
 - **Champion: v2** = F11, `strategies/history/v2.py`, on pushed `optimize-loop`. Previous: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
   - v1 = v0 + **F5a commit to banking**: once the carry limit sends an agent home, it keeps going home.
   - Holdout A/B against v0: **+0.24 ± 0.06** pts/game, better against every opponent.
