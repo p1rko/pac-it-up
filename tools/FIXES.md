@@ -223,6 +223,19 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F13: where v2 concedes food: big raids, capsules and the opening (analysis, 2026-11-06)
+- **Data:** v2's 720 games in the F12 runs (`20261106-210014-ab`, `-212044-ab`, `-214120-ab`). Tools: `diagnose.py unopposed` and the new `tools/raid_fate_probe.py`.
+- **Unopposed bites** (no ghost of ours within 6): 8.3 / 10.8 / 12.4 per game. When they happen, both our agents are attacking in 42% / 59% / 60% of cases. In the rest, the nearest home ghost is usually far (≤10 steps in 32%, 11–20 in 47%, 21+ in 21%), and 28% of the time it's scared.
+- **A few big raids carry almost everything:** v2 faces 24.6 raids per game, but the **1.1 per game that bank 5+ food bring 8.1 of the 10.1 food conceded (80%)**. 53% of those never come within 6 steps of an unscared ghost of ours.
+- **Half the big raids involve a capsule** (400 of 804, 4.3 food/game; one of ours turned scared during the raid). Against dario it's 111 of 141.
+- **They happen early:** 84% of big raids start in the first half (quarters 1–4: 361 / 317 / 101 / 25). **Late raids are rare (3%)**, which caps what F10-style "protect the lead late" can win.
+- **Where we were when a big raid started:** both attacking 286, Raider attacking and Flex home 205, Raider home and Flex attacking 87, both home 226. When at least one of ours was attacking, the nearest attacker was usually **within 3 steps of the border** (318 of 578): we cross into their side just as they cross into ours. An attacker came home during 75% of those raids, mostly too late.
+- **Conclusions / next candidates:**
+  1. **Capsule guard (most food):** when an invader is on our side and closer to one of our capsules than our nearest ghost, the home ghost (or an attacker within a few steps of the border) moves to sit between it and the capsule. F11's race evaluation covers capsules only inside fight range (6).
+  2. **Opening crossing:** stop both agents crossing at the same time as the enemy in the first quarter. For example, Flex waits at the border until the first invader shows, or turns back if it sees an invader within ~6 steps of the border while it's within 3 of it.
+  3. F10 revive is lower value than expected: late big raids are only 3%.
+- Re-measure with `python tools/raid_fate_probe.py my_team <run_ids>` (or `v2`).
+
 ### F11c: measuring F11's "attack cost": there isn't one (analysis, 2026-11-06)
 - **New tool:** `tools/role_probe.py <runs>` gives per-role (Raider/Flex) banked food, Pacman turns, home turns with an invader within 6 (fight), free home turns, stuck turns, and turns near the border.
 - **F11 against v1, per agent and game, over F11's three runs:**

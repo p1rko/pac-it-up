@@ -138,3 +138,8 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Against v2: train +0.05, holdout −0.05, unseen −0.12 ± 0.06; pooled **−0.04 ± 0.035 (z −1.1)**.
   - Kills up again, but conceded barely moved and banked fell 0.45 per game: v2 already wins the chases the hunt would start.
   - Saved as `strategies/experiments/f12_v2_home_hunt.py`; champion stays v2.
+- **v2 pushed** (2026-11-06): `optimize-loop` fast-forwarded to v2 and pushed (`d3a7089`, with the F12 record).
+- **Analysis F13: where v2 concedes food** (2026-11-06).
+  - Big raids (banking 5+) are 1.1 per game but 80% of the food conceded; half of them involve a capsule, 84% start in the first half, and only 3% are late.
+  - Often we cross into their side just as they cross into ours (nearest attacker ≤3 from the border).
+  - Next: capsule guard, then a calmer opening; F10 revive has a low ceiling.
