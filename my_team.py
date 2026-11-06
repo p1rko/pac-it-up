@@ -952,6 +952,8 @@ class FlexAgent(RaiderAgent):
     DANGER_HAUL = 4
     FREE_DEFENCE = 40       # defend turns allowed before catches are required
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
+    GUARD_LEAD = 1          # protect the lead: guard full-time when ahead by at least this ...
+    GUARD_MOVES = 150       # ... with fewer than this many own moves left (the second half)
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
@@ -978,6 +980,13 @@ class FlexAgent(RaiderAgent):
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+
+        # Protect the lead: ahead in the second half, one enemy raid can flip the
+        # result while both of us are away. Guard home full-time (defend() first
+        # banks anything we carry); go back to attacking once the lead is gone.
+        if self.get_score(game_state) >= self.GUARD_LEAD and self.moves_left(game_state) < self.GUARD_MOVES:
+            return self.defend(game_state, others=self.mate_handling(game_state))
+
         if my_state.num_carrying == 0 and my_state.scared_timer == 0:
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
