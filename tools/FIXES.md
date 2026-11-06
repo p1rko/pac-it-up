@@ -204,6 +204,44 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F11: Defender fight evaluation races the invader (exits, food, capsules): promising, parked at z = 1.86 (2026-11-06)
+- **Evidence:** `tools/chase_probe.py` replays games and classifies how every chase ends. A chase starts when one of our unscared ghosts is within 3 steps of an invader, and ends caught / crossed / outran / capsule / ghost_left.
+  - **v1 chases from behind.** In `20261106-155310-ab-0299` Flex trails an invader at exactly 3 steps for 100 turns while it eats 5 → 10 food, and the Raider trails another one at 1 step for 40 turns. An equal-speed Pacman can't be caught from behind. This explains F10: our ghost was near the raider but never caught it.
+  - **Cause:** the defender branch of `evaluate_fight` scored −20·distance + 8·(lead to the invader's single nearest exit). It ignored our teammate and our own scared timer. With a search about 4 moves deep, that means following the invader.
+- **Ruled out:**
+  - **Cycle pockets with one exit cell (a choke):** this looked likely from game 0339, where the invader circled a loop with 11 food for 400 turns. But chases where we reach a choke first are already caught 70–75% of the time, and they are only 1–3% of the big escapes.
+  - **Most capsule losses:** in those, the invader was nearer the capsule than us.
+- **Change:** `SmartAgent.invader_race()` replaces `home_escape_gap` in the defender evaluation. "Guards" are our searching ghost plus home, unscared teammates (held static), and the penalty counts what the invader reaches strictly before every guard:
+  - `ESCAPE_PENALTY` 300 if it reaches some border exit first, plus `EXIT_LEAD_WEIGHT` 25 per step of its best-exit lead (clipped ±6);
+  - `FOOD_FIRST_WEIGHT` 8 per defended dot it reaches first;
+  - `CAPSULE_FIRST_PENALTY` 200 per capsule it reaches first;
+  - `SCARED_PENALTY` 500 when we are scared.
+
+  Results are cached per (our cell, invader cell) within a search.
+- **A/B against v1:**
+
+  | | train `20261106-162806-ab` | holdout `20261106-164753-ab` | unseen holdout maps 20–39 `20261106-171206-ab` |
+  |---|---|---|---|
+  | Δ pts/game | +0.09 ± 0.08 | +0.06 ± 0.06 | +0.07 ± 0.06 |
+  | W-T-L v1 → F11 | 139-48-53 → 145-52-43 | 167-30-43 → 171-32-37 | 155-26-59 → 161-24-55 |
+  | invader food banked against us | 9.30 → 8.69 | 11.60 → **9.97** | 12.60 → 11.51 |
+  | capsule food conceded | 1.21 → 1.14 | 2.08 → 1.68 | 2.08 → 1.78 |
+  | our banked | 14.95 → 15.19 | 16.69 → **16.10** | 17.87 → **17.23** |
+  | idle_attack | 51 → 57 | 45 → 50 | 39 → 39 |
+  | leads lost | 26 → 21 | 13 → 11 | 30 → 28 |
+
+  - **Pooled** (360 pairs, decision rule fixed before the third run: pooled Δ > 2 SE and the fresh batch ≥ 0): **+0.072 ± 0.039, z = 1.86**. It narrowly fails, so it's parked.
+  - By opponent, pooled: search +0.15, tracking +0.15, blitz +0.12, turtle +0.05, dario +0.04, reflex −0.08 (all within 1.5 SE).
+  - Chase probe (holdout, v1 → F11): escapes with the invader carrying 3+ went 146 → 106 (food 876 → 635); capsule endings 79 → 57.
+- **Timing:** 3 holdout games had a move of 0.5–0.68 s (v1 max 0.38). None of them reproduced when replayed with a profiler, so they look like load spikes. The other two runs maxed at 0.31 s. The `TURN_BUDGET` of 0.75 s caps a turn anyway.
+- **Why it's not clearly better:** defence improved in all three runs (−0.6 to −1.6 food conceded), but our own banking fell by about 0.6 in two of the three. A ghost near the border now holds an exit or the food race instead of chasing briefly and returning to attack.
+- **Status:** saved as `strategies/experiments/f11_race_eval.py`; `my_team.py` stays v1. **The strongest candidate so far.**
+- **Revive ideas** (F11b, cheapest first):
+  1. **Apply the race only when the invader carries food** (or ≥ 2). Otherwise keep v1's chase-and-return, to win back the attack time.
+  2. **Only the agent in defence mode uses the race term;** the Raider's incidental `hunt_nearby_invader` fights keep the v1 evaluation.
+  3. Lower `FOOD_FIRST_WEIGHT` (it pulls the ghost deep into our half), or drop it.
+  4. Then retry F10 (guard a big late lead) on top: with a ghost that cuts ahead instead of trailing, a home guard might finally pay.
+
 ### F6: Spend the scared-guard window on food, not on eating scared ghosts (user's fix)
 - **Evidence:** v0 in `20261103-183912-ab`, measured with `diagnose.py capsules`, per window we open.
 

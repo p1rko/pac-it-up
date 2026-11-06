@@ -120,3 +120,8 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Train −0.13 ± 0.06 (`20261106-153419-ab`), holdout −0.09 ± 0.06 (`20261106-155310-ab`).
   - Leads lost went **up** (train 26 → 32, holdout 13 → 20), although our ghost was near the decisive raid 3× as often. `defend()` doesn't catch evading raiders, and the lost banking (−0.7 to −0.85 per game) leaves narrower leads.
   - Saved as `strategies/experiments/f10_protect_lead.py`; champion is still v1.
+- **Attempt 3: F11, defender races the invader** (2026-11-06). Promising, parked.
+  - New tool `tools/chase_probe.py` showed that v1's ghosts chase from behind, so they never catch anyone. The fix replaces the defender fight evaluation with a "who reaches exits, food and capsules first" race, counting both our home ghosts.
+  - Train +0.09 ± 0.08, holdout +0.06 ± 0.06, unseen holdout maps 20–39 +0.07 ± 0.06. Pooled **+0.072 ± 0.039 (z = 1.86)**, just under the rule fixed beforehand (z > 2).
+  - Food conceded fell in every run (holdout 11.6 → 10.0), but our banking fell by about 0.6 in two runs.
+  - Saved as `strategies/experiments/f11_race_eval.py`; champion is still v1. Next: F11b, which applies the race only when the invader carries food, to win back attack time.

@@ -70,13 +70,6 @@ class SmartAgent(CaptureAgent):
     SEARCH_TIME = 0.30      # seconds of alpha-beta per move (limit is 1 s on a slower machine)
     TURN_BUDGET = 0.75      # hard stop for everything we do in one turn
     FIGHT_RANGE = 6         # search when an opponent is this close
-    # Defender fight evaluation ("who gets there first" against an invader):
-    ESCAPE_PENALTY = 300        # the invader reaches some border exit before all our ghosts
-    EXIT_LEAD_WEIGHT = 25       # per step of its lead (or deficit) to its best exit ...
-    EXIT_LEAD_CAP = 6           # ... clipped to this many steps either way
-    FOOD_FIRST_WEIGHT = 8       # per defended dot it reaches first
-    CAPSULE_FIRST_PENALTY = 200 # per defended capsule it reaches first
-    SCARED_PENALTY = 500        # we are scared (it ate a capsule)
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -461,19 +454,6 @@ class SmartAgent(CaptureAgent):
         self.root['far_from_start'] = {
             e: self.dist(game_state.get_agent_position(e), self.root['enemy_start'][e]) > 1
             for e in enemies}
-        if not my_state.is_pacman:
-            # Teammates that are home, unscared ghosts also block the invader;
-            # the search keeps them where they stand.
-            mates = []
-            for i in self.get_team(game_state):
-                st = game_state.get_agent_state(i)
-                if i != self.index and not st.is_pacman and st.scared_timer == 0:
-                    p = st.get_position()
-                    mates.append((int(p[0]), int(p[1])))
-            self.root['mates'] = mates
-            self.root['def_food'] = self.get_food_you_are_defending(game_state).as_list()
-            self.root['def_caps'] = self.get_capsules_you_are_defending(game_state)
-            self.root['race'] = {}
         order = [self.index] + list(enemies)
         best = default
         plies = len(order)
@@ -577,8 +557,6 @@ class SmartAgent(CaptureAgent):
             # Defender: close in on the invaders and stop them eating.
             if me.is_pacman:
                 value -= 1000   # never chase across the border
-            if me.scared_timer > 0:
-                value -= self.SCARED_PENALTY   # the invader got a capsule
             for e in self.root['enemies']:
                 enemy = state.get_agent_state(e)
                 enemy_pos = enemy.get_position()
@@ -588,33 +566,9 @@ class SmartAgent(CaptureAgent):
                 value -= 20 * self.dist(cell, epos)
                 value -= 30 * enemy.num_carrying
                 if enemy.is_pacman:
-                    value -= self.invader_race(cell, epos)
+                    # Being between the invader and its way home is what traps it.
+                    value += 8 * self.home_escape_gap(cell, epos)
         return value
-
-    def invader_race(self, cell, invader):
-        """
-        Penalty for what the invader can reach before any of our ghosts (us at
-        `cell` plus home teammates where they stand): a way out over the
-        border, its lead to the best exit, our food and our capsules. Getting
-        in front of the invader, rather than following it, lowers this.
-        """
-        key = (cell, invader)
-        race = self.root['race']
-        if key in race:
-            return race[key]
-        guards = [cell] + self.root['mates']
-
-        def first(target):
-            return self.dist(invader, target) < min(self.dist(g, target) for g in guards)
-
-        lead = max(min(self.dist(g, b) for g in guards) - self.dist(invader, b) for b in self.home_border)
-        penalty = self.EXIT_LEAD_WEIGHT * max(-self.EXIT_LEAD_CAP, min(lead, self.EXIT_LEAD_CAP))
-        if lead > 0:
-            penalty += self.ESCAPE_PENALTY
-        penalty += self.FOOD_FIRST_WEIGHT * sum(1 for f in self.root['def_food'] if first(f))
-        penalty += self.CAPSULE_FIRST_PENALTY * sum(1 for c in self.root['def_caps'] if first(c))
-        race[key] = penalty
-        return penalty
 
     def home_escape_gap(self, me, invader):
         """How much closer we are than the invader to the border it would flee over."""
