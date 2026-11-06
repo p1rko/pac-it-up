@@ -313,6 +313,34 @@ Commit to banking once the carry limit sends us home. Holdout +0.24 ± 0.06 pts/
 
 ## Rejected
 
+### F10: Protect the lead (Flex guards full-time when ahead late): rejected, code kept (2026-11-06)
+- **Idea:** the 40 "lead lost late" losses in v1 come from one long enemy raid while both our agents are away (see F9). So when we're ahead in the second half, Flex stops attacking and guards home full-time with `defend()`. The Raider keeps attacking.
+- **Change:** in `FlexAgent.decide`, when score ≥ `GUARD_LEAD` (1) and own moves left < `GUARD_MOVES` (150), call `defend()`, which banks any food carried first. Flex reverts once the lead is gone.
+- **A/B against v1:** 0 crashes, 0 warnings, max move 0.31 s.
+
+  | | train (`20261106-153419-ab`) | holdout (`20261106-155310-ab`) |
+  |---|---|---|
+  | Δ pts/game | **−0.13 ± 0.06** | **−0.09 ± 0.06** |
+  | W-T-L v1 → F10 | 139-49-52 → 127-54-59 | 169-28-43 → 161-30-49 |
+  | by opponent | dario −0.28, turtle −0.23, reflex −0.15, blitz −0.05, tracking −0.07, search 0.00 | reflex −0.28, search −0.17, blitz −0.12, tracking −0.07, dario +0.05, turtle +0.05 |
+  | our banked | 14.97 → 14.12 | 16.81 → 16.12 |
+  | invader food banked against us | 9.30 → 9.57 | 11.56 → 11.62 |
+  | kills | 0.36 → 0.38 | 0.36 → 0.46 |
+  | capsule food conceded | 1.21 → 1.60 | 2.10 → 2.34 |
+  | **leads lost** (`diagnose.py leads`) | **26 → 32** | **13 → 20** |
+  | our ghost within 3 steps of the decisive raid | 9% → 28% | 14% → 32% |
+
+- **Why it failed:**
+  - **Having a guard home didn't stop the raids.** Our ghost was near the decisive raid three times as often (median 2 steps away), yet more leads were lost. `defend()` shadows an invader but rarely catches one that is evading. The raider gets past the guard, or eats a capsule (capsule food conceded went up) and walks through.
+  - **Flex's attack was what kept the lead safe.** It banked 0.7–0.85 less per game, so leads stayed narrow, and one ordinary raid was enough to flip them. Conceded food didn't fall at all.
+  - This is the same lesson as F1, F2 and F5c: a full-time `defend()` Flex is a weak guard, and attack throughput protects a lead better than guarding does.
+- **Status:** saved as `strategies/experiments/f10_protect_lead.py`; `my_team.py` stays v1.
+- **Revive ideas:**
+  1. **Only guard a big enough lead, late:** e.g. lead ≥ 5 with < 75 moves left, so throughput isn't given up while the lead is still narrow.
+  2. **Fix `defend()` first:** find out why a ghost 2 steps away doesn't catch the raider. Watch the raids with `watch.py`. Possible causes are a chase with no cut-off of the exit, and no guard on the capsule. Then retry F10.
+  3. **Guard the capsule:** while guarding, stand between the invader and our capsule.
+  4. Combine with F9's home hunt (kills went up in both).
+
 ### F2+F7: Shallow Flex plus taking safe capsules when guarded (rejected 2026-11-03)
 - **Change:**
   - Flex attacks only food within 8 steps of our border (`SHALLOW`); once none are left, it takes the shallowest food left.

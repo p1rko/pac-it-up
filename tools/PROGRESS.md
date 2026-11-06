@@ -115,3 +115,8 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Train −0.01 ± 0.06 (`20261104-163637-ab`), holdout +0.00 ± 0.06 (`20261104-165651-ab`).
   - Kills up (holdout 0.36 → 0.50) and slightly less food conceded, but leads lost are unchanged: the decisive raids happen while both our agents are away.
   - Saved as `strategies/experiments/f9_home_hunt.py`; champion is still v1.
+- **Attempt 2: F10, protect the lead** (2026-11-06). Rejected, code kept.
+  - When ahead with fewer than 150 moves left, Flex guards home full-time with `defend()`.
+  - Train −0.13 ± 0.06 (`20261106-153419-ab`), holdout −0.09 ± 0.06 (`20261106-155310-ab`).
+  - Leads lost went **up** (train 26 → 32, holdout 13 → 20), although our ghost was near the decisive raid 3× as often. `defend()` doesn't catch evading raiders, and the lost banking (−0.7 to −0.85 per game) leaves narrower leads.
+  - Saved as `strategies/experiments/f10_protect_lead.py`; champion is still v1.
