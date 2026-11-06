@@ -223,6 +223,28 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F14: capsule guard: positive but not significant, parked (2026-11-06)
+- **Idea (from F13):** half of v2's big raids involve a capsule. Race an invader to a capsule it's close to.
+- **Change:** `SmartAgent.capsule_guard()`, called first by both roles (after the Raider's late-lead guard). It fires when an invader on our side is within `CAP_GUARD_RADIUS` (10) of one of our capsules. The nearest unscared teammate that's at home, or attacking within `CAP_GUARD_RECALL` (3) of our border, walks to the capsule (or stays on it), but only while the race is tight: at most as far as the invader and no more than `CAP_GUARD_SLACK` (2) ahead. Branch `f14-capsule-guard` (`dee79b0`), saved as `strategies/experiments/f14_capsule_guard.py`.
+- **A/B against v2** (480 games each, 0 crashes):
+
+  | batch | run | Δ points/game | margin | banked | conceded | unopposed food |
+  |---|---|---|---|---|---|---|
+  | train | `20261106-222501-ab` | **+0.10 ± 0.05** | −0.04 | −0.12 | −0.08 | −0.45 |
+  | holdout | `20261106-225957-ab` | −0.00 ± 0.06 | +0.18 | −0.35 | −0.54 | −0.54 |
+  | unseen holdout (offset 20) | `20261106-232246-ab` | +0.05 ± 0.05 | +0.29 | −0.30 | −0.59 | −0.67 |
+  | **pooled** | | **+0.05 ± 0.031 (z 1.6)** | +0.14 | −0.26 | −0.40 | −0.55 |
+
+  By opponent (pooled): reflex +0.13, tracking +0.16, search +0.06, dario +0.07, turtle +0.03, **blitz −0.14 ± 0.07 (z −1.9)**. The guard recalls an attacker often against a team with two attackers.
+- **Timing:** train had 6 warnings for us and 7 for v2 (machine load, both sides alike). Holdout had a max move of 0.71 s (p99 0.30). Under the 1 s limit, but worth watching.
+- **Target metric:** `raid_fate_probe.py` (same games): big raids with a capsule 401 → 382, food conceded by raids 10.02 → 9.62/game. `capsule_race_probe.py`: capsules eaten by invaders 0.90 → 0.85 per game.
+- **Why the effect is small:** when an invader first comes within 10 steps of the capsule it will eat, our nearest responder can win the race in only about 10% of cases (v2: 68 of 648 ahead or tied). 54% of the time the responder is 3+ steps behind, and in 28% there's no eligible responder at all (everyone deep in attack or scared). A reactive race can't fix a capsule that's already lost by positioning.
+- **Revive ideas:**
+  1. **Proactive capsule cover:** when a ghost of ours is home with no invader in, weight `patrol_point` towards the capsule nearest the enemy's likely crossing. Or keep the home ghost within (invader's distance − 1) of our most exposed capsule as soon as an enemy ghost nears the border.
+  2. Combine F14 with the calmer opening (F13 #2): most capsule raids are early, while both of ours are away.
+  3. Don't recall attackers against teams with two attackers (blitz), where it cost banking.
+  4. Drop the slack cap: in 48 capsule losses with F14 our responder was ahead and still lost it.
+
 ### F13: where v2 concedes food: big raids, capsules and the opening (analysis, 2026-11-06)
 - **Data:** v2's 720 games in the F12 runs (`20261106-210014-ab`, `-212044-ab`, `-214120-ab`). Tools: `diagnose.py unopposed` and the new `tools/raid_fate_probe.py`.
 - **Unopposed bites** (no ghost of ours within 6): 8.3 / 10.8 / 12.4 per game. When they happen, both our agents are attacking in 42% / 59% / 60% of cases. In the rest, the nearest home ghost is usually far (≤10 steps in 32%, 11–20 in 47%, 21+ in 21%), and 28% of the time it's scared.

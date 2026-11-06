@@ -143,3 +143,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Big raids (banking 5+) are 1.1 per game but 80% of the food conceded; half of them involve a capsule, 84% start in the first half, and only 3% are late.
   - Often we cross into their side just as they cross into ours (nearest attacker ≤3 from the border).
   - Next: capsule guard, then a calmer opening; F10 revive has a low ceiling.
+- **Attempt 6: F14, capsule guard** (2026-11-06). Positive, not significant; parked.
+  - Against v2: train +0.10 ± 0.05, holdout −0.00, unseen +0.05; pooled **+0.05 ± 0.031 (z 1.6)**; blitz −0.14 (z −1.9).
+  - Conceded −0.40/game, banked −0.26. Capsules eaten only 0.90 → 0.85/game: most capsule races are lost 3+ steps before a reactive guard could act.
+  - Saved as `strategies/experiments/f14_capsule_guard.py`; champion stays v2. Next: proactive capsule cover, or the calmer opening.

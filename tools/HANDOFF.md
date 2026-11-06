@@ -14,6 +14,7 @@ Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FI
   - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`.
   - `f11b-race-when-carrying`: local, not pushed, branched from `f11-defend-catch`. Holds the F11b record (z = 1.47).
   - `v2-f11`: local, not pushed. `my_team.py` = **v2 = F11**, frozen as `strategies/history/v2.py` (the user accepted it on margin, 2026-11-06). Same code as `optimize-loop`.
+  - `f14-capsule-guard`: local, branched from `optimize-loop`. Holds F14 (parked).
   - `f12-v2-home-hunt`: local, branched from `v2-f11`. Holds the F12 record (rejected). Newest branch for records.
   - `f5-stalls`: local; already merged into `optimize-loop`.
   - `f6-harvest`: local; the user's scared-window idea (F6).
@@ -83,12 +84,13 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F11 | defender fight eval races the invader to exits/food/capsules (both home ghosts) | train +0.09, holdout +0.06, unseen +0.07; pooled **+0.072 ± 0.039 (z 1.86)**, parked; conceded −0.6 to −1.6, banked −0.6 | `experiments/f11_race_eval.py` |
 | F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
 | **v2** | **= F11, accepted by the user on margin** | | `history/v2.py` |
+| F14 | capsule guard (race to a capsule an invader is near) | train +0.10, holdout −0.00, unseen +0.05; pooled +0.05 ± 0.031 (z 1.6), parked; blitz −0.14 | `experiments/f14_capsule_guard.py` |
 | F13 | analysis: where v2 concedes | big raids 1.1/game = 80% of conceded; half capsule; 84% first half | `tools/raid_fate_probe.py` |
 | F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
-1. **Capsule guard** (F13): half the big raids, about 4.3 food/game, involve a capsule. When an invader is closer to one of our capsules than our nearest ghost, a home ghost (or an attacker near the border) sits between them.
-2. **Calmer opening** (F13): 84% of big raids start in the first half, often as we cross at the same moment. Hold Flex at the border until the first invader shows, or turn back for an invader seen near the border.
+1. **Proactive capsule cover** (F14 revive): F14's reactive race barely reduced capsules eaten (0.90 → 0.85/game) because the race is usually lost 3+ steps before it fires. Position a home ghost to cover the most exposed capsule before the invader is close (`patrol_point`).
+2. **Calmer opening** (F13): 84% of big raids start in the first half, often as we cross at the same moment. Hold Flex at the border until the first invader shows, or turn back for an invader seen near the border. Can be stacked on F14.
 3. **F10 revive on top of v2:** big lead (≥ 5), very late (< 75 moves). Low ceiling: late big raids are only 3% (F13).
 4. **F12 revive (cheap):** home hunt only by an agent already a ghost at home, only for invaders carrying 5+.
 5. **0–0 deadlocks (deferred by the user):** in a 0–0 game after the halfway point, force one food through (both agents on one crossing, or a capsule). One food turns 1 point into 3. 56 games per 480 are affected.
