@@ -204,6 +204,27 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F11b: F11 racing only invaders that carry food: neutral, code kept (2026-11-06)
+- **Idea:** F11 lost about 0.6 banked per game. The guess was that the cost came from brief border fights with empty-handed invaders, where the race term holds our ghost at an exit instead of letting it chase and go back to attacking.
+- **Change:** F11, but the race term is applied only to invaders carrying ≥ `RACE_CARRY` (1) at the search root. Empty-handed ones get v1's `8 · home_escape_gap`. Deciding at the root keeps the evaluation consistent within one search.
+- **A/B against v1:** 0 crashes, 0 warnings, max move 0.45 s.
+
+  | | train `20261106-193727-ab` | holdout `20261106-195733-ab` | unseen holdout 20–39 `20261106-201714-ab` |
+  |---|---|---|---|
+  | Δ pts/game | +0.07 ± 0.06 | +0.04 ± 0.06 | +0.04 ± 0.06 |
+  | our banked | +0.23 | −0.49 | −0.47 |
+  | invader food banked against us | −0.45 | −1.37 | −0.54 |
+  | idle_attack | +4.0 | +5.2 | +0.3 |
+
+  - **Pooled** (360 pairs): **+0.051 ± 0.035, z = 1.47.** That's below F11 (z = 1.86), so it's not accepted.
+  - By opponent: tracking +0.19 (2.1 SE), search +0.11, blitz +0.06, turtle +0.04, dario −0.04, reflex −0.05.
+- **What this says:** the banking cost didn't come back. idle_attack and banked moved just as in F11. So **F11's attack cost doesn't come from fights with empty invaders**, and the guess was wrong. Restricting the race also gave back some defence (holdout conceded −1.37 against F11's −1.62), so plain F11 remains the better version.
+- **Status:** saved as `strategies/experiments/f11b_race_when_carrying.py`; `my_team.py` stays v1.
+- **Next:** measure where F11's attack cost actually comes from before tuning further. Candidates:
+  - per-agent banked and idle turns (Raider vs Flex) in matched F11/v1 games;
+  - whether the defender's fight search now keeps Flex from crossing (its `ESCAPE_PENALTY` dominates while an invader is anywhere within 6);
+  - whether `FOOD_FIRST_WEIGHT` pulls ghosts deep into our half.
+
 ### F11: Defender fight evaluation races the invader (exits, food, capsules): promising, parked at z = 1.86 (2026-11-06)
 - **Evidence:** `tools/chase_probe.py` replays games and classifies how every chase ends. A chase starts when one of our unscared ghosts is within 3 steps of an invader, and ends caught / crossed / outran / capsule / ghost_left.
   - **v1 chases from behind.** In `20261106-155310-ab-0299` Flex trails an invader at exactly 3 steps for 100 turns while it eats 5 → 10 food, and the Raider trails another one at 1 step for 40 turns. An equal-speed Pacman can't be caught from behind. This explains F10: our ghost was near the raider but never caught it.

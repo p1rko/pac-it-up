@@ -11,7 +11,8 @@ Last updated 2026-11-06. Read this first when resuming. Details are in `tools/FI
   - `optimize-loop`: pushed, at `302a12f` (v1 accepted). The base for new work.
   - `f9-home-hunt`: local, not pushed, at `3844ea5` + this file. Holds the F9 record, `tools/raid_probe.py` and `diagnose.py leads`. `my_team.py` there is still v1. Merge it into `optimize-loop` with the next accepted version, or now if the tools are wanted there.
   - `f10-protect-lead`: local, not pushed, branched from `f9-home-hunt`. Holds the F10 record (rejected).
-  - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`; `my_team.py` is v1. **Newest branch; work from here.**
+  - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`.
+  - `f11b-race-when-carrying`: local, not pushed, branched from `f11-defend-catch`. Holds the F11b record (z = 1.47); `my_team.py` is v1. **Newest branch; work from here.**
   - `f5-stalls`: local; already merged into `optimize-loop`.
   - `f6-harvest`: local; the user's scared-window idea (F6).
 - **Not ours to commit:** the user's edits to `CLAUDE.md` and `tools/AGENTS_PROFILE.md`, `tools/manual_analysis.md`, and the dirty `pacman-contest` submodule pointer.
@@ -77,9 +78,10 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F9 | home hunt: an agent at home hunts invaders carrying 2+ | train −0.01, holdout +0.00; kills +40%, leads lost unchanged | `experiments/f9_home_hunt.py` |
 | F10 | protect the lead: Flex guards full-time when ahead with < 150 moves left | train −0.13, holdout −0.09; leads lost **up** (26→32, 13→20) | `experiments/f10_protect_lead.py` |
 | F11 | defender fight eval races the invader to exits/food/capsules (both home ghosts) | train +0.09, holdout +0.06, unseen +0.07; pooled **+0.072 ± 0.039 (z 1.86)**, parked; conceded −0.6 to −1.6, banked −0.6 | `experiments/f11_race_eval.py` |
+| F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
 
 ## Next possible steps (recommended order)
-1. **F11b: win back F11's attack cost (recommended next).** F11 is the strongest candidate so far (see FIXES F11). Apply its race term only when the invader carries food (or ≥ 2), and/or only for the agent in defence mode, so a Raider's brief border fights return to attacking as in v1. Targets: keep conceded −1, banked back to v1's level. Then run train, holdout and unseen holdout (`--pool holdout --offset 20`) and pool all three.
+1. **F11c: find F11's real attack cost (recommended next).** F11b showed it does *not* come from fights with empty invaders. Measure per agent (Raider/Flex) banked, idle turns and turns spent as a ghost in matched F11/v1 games, then target the cause. Suspects: the race term keeps Flex from crossing while an invader is anywhere within `FIGHT_RANGE`; `FOOD_FIRST_WEIGHT` pulls ghosts deep. Test plain F11 + fix with the same three batches (train, holdout, `--pool holdout --offset 20`) and pool them (accept at z > 2 with the unseen batch ≥ 0).
 2. **F10 revive on top of F11/F11b:** guard only a big lead (≥ 5) very late (< 75 moves), plus F9's home hunt.
 3. **F9 tuning:** `HUNT_CARRY` 1 and `HUNT_RADIUS` 15.
 4. **0–0 deadlocks (deferred by the user):** in a 0–0 game after the halfway point, force one food through (both agents on one crossing, or a capsule). One food turns 1 point into 3. 56 games per 480 are affected.

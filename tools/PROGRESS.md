@@ -125,3 +125,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Train +0.09 ± 0.08, holdout +0.06 ± 0.06, unseen holdout maps 20–39 +0.07 ± 0.06. Pooled **+0.072 ± 0.039 (z = 1.86)**, just under the rule fixed beforehand (z > 2).
   - Food conceded fell in every run (holdout 11.6 → 10.0), but our banking fell by about 0.6 in two runs.
   - Saved as `strategies/experiments/f11_race_eval.py`; champion is still v1. Next: F11b, which applies the race only when the invader carries food, to win back attack time.
+- **Attempt 4: F11b, race only invaders carrying food** (2026-11-06). Neutral, code kept.
+  - Train +0.07, holdout +0.04, unseen +0.04; pooled **+0.051 ± 0.035 (z = 1.47)**, weaker than F11.
+  - Our banked food still fell about 0.5, so F11's attack cost doesn't come from fights with empty invaders.
+  - Saved as `strategies/experiments/f11b_race_when_carrying.py`; champion is still v1. Next: measure where F11's attack cost comes from (F11c).
