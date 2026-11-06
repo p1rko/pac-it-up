@@ -129,3 +129,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Train +0.07, holdout +0.04, unseen +0.04; pooled **+0.051 ± 0.035 (z = 1.47)**, weaker than F11.
   - Our banked food still fell about 0.5, so F11's attack cost doesn't come from fights with empty invaders.
   - Saved as `strategies/experiments/f11b_race_when_carrying.py`; champion is still v1. Next: measure where F11's attack cost comes from (F11c).
+- **Analysis F11c: F11's attack cost** (2026-11-06). There isn't one.
+  - New tool `tools/role_probe.py`: per-role Pacman turns are unchanged, and banked −0.33 ± 0.21 is noise.
+  - F11's defence gain is strong: conceded **−1.11 ± 0.22 (z −5.0)**, margin **+0.78 ± 0.23 (z +3.4)**; points only reach z 1.86.
+  - Next: the user decides on F11, or we test F11 + F9 home hunt.

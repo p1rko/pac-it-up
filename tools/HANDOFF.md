@@ -38,6 +38,7 @@ venv/bin/python tools/diagnose.py unopposed <run> --agent my_team v1    # where 
 PACKITUP_DEBUG=1 venv/bin/python tools/raid_probe.py [agent.py] --maps 3   # what our agents do during enemy raids
 PACKITUP_DEBUG=1 venv/bin/python tools/stall_probe.py [agent.py] --maps 4  # which code path stalls; enemy attack shares
 venv/bin/python tools/chase_probe.py <run> --agent my_team v1 [--late] [--examples 5]  # how chases end (caught/crossed/outran/capsule)
+venv/bin/python tools/role_probe.py <run> [<run> ...]               # per-role banked / pacman / fight / idle turns
 venv/bin/python tools/watch.py events <game_id>                          # one game's timeline (and play/queue/moments)
 ```
 
@@ -81,13 +82,14 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
 
 ## Next possible steps (recommended order)
-1. **F11c: find F11's real attack cost (recommended next).** F11b showed it does *not* come from fights with empty invaders. Measure per agent (Raider/Flex) banked, idle turns and turns spent as a ghost in matched F11/v1 games, then target the cause. Suspects: the race term keeps Flex from crossing while an invader is anywhere within `FIGHT_RANGE`; `FOOD_FIRST_WEIGHT` pulls ghosts deep. Test plain F11 + fix with the same three batches (train, holdout, `--pool holdout --offset 20`) and pool them (accept at z > 2 with the unseen batch ≥ 0).
-2. **F10 revive on top of F11/F11b:** guard only a big lead (≥ 5) very late (< 75 moves), plus F9's home hunt.
-3. **F9 tuning:** `HUNT_CARRY` 1 and `HUNT_RADIUS` 15.
-4. **0–0 deadlocks (deferred by the user):** in a 0–0 game after the halfway point, force one food through (both agents on one crossing, or a capsule). One food turns 1 point into 3. 56 games per 480 are affected.
-5. **Outplayed-early losses:** find out why `defend()` concedes more against search than a Flex stalled at the border (seen in F5c). Watch clips with `watch.py`.
-6. **Older leads:**
+1. **Decide F11 (user).** F11c showed F11's "attack cost" is noise (banked −0.33 ± 0.21), while its defence gain is very significant: conceded −1.11 ± 0.22 (z −5.0), margin +0.78 ± 0.23 (z +3.4). Points only reach z 1.86. Either accept F11 on margin (a rule change) or stack a defence add-on on F11 and test it (next item).
+2. **F11 + F9 home hunt** (F9 made more kills but couldn't finish raids; F11 fixes catching). Same three batches, pooled.
+3. **F10 revive on top of F11:** guard only a big lead (≥ 5) very late (< 75 moves), plus F9's home hunt.
+4. **F9 tuning:** `HUNT_CARRY` 1 and `HUNT_RADIUS` 15.
+5. **0–0 deadlocks (deferred by the user):** in a 0–0 game after the halfway point, force one food through (both agents on one crossing, or a capsule). One food turns 1 point into 3. 56 games per 480 are affected.
+6. **Outplayed-early losses:** find out why `defend()` concedes more against search than a Flex stalled at the border (seen in F5c). Watch clips with `watch.py`.
+7. **Older leads:**
    - F4: both agents leave a long spawn corridor by the same path.
    - F8: both scared ghosts get eaten together.
    - F6 revive: harvest plus more capsules, and still eat scared ghosts far from their spawn.
-7. **Before submission:** merge v1 (or later) into `main`, then check timing on a slower machine; lower `SEARCH_TIME` first if needed.
+8. **Before submission:** merge v1 (or later) into `main`, then check timing on a slower machine; lower `SEARCH_TIME` first if needed.

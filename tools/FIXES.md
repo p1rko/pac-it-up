@@ -204,6 +204,26 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F11c: measuring F11's "attack cost": there isn't one (analysis, 2026-11-06)
+- **New tool:** `tools/role_probe.py <runs>` gives per-role (Raider/Flex) banked food, Pacman turns, home turns with an invader within 6 (fight), free home turns, stuck turns, and turns near the border.
+- **F11 against v1, per agent and game, over F11's three runs:**
+  - Pacman turns are unchanged (±5 in both directions).
+  - Flex has +3 to +6 fight turns, taken from its free home time, not its attack time.
+  - Banked differs by about −0.3 per agent in two runs and is level in train.
+- **Paired significance over all 720 F11/v1 pairs** (same map, opponent and colour):
+
+  | metric | F11 Δ/game | z | F11b Δ/game | z |
+  |---|---|---|---|---|
+  | invader food banked against us | **−1.11 ± 0.22** | **−5.0** | −0.79 ± 0.21 | −3.7 |
+  | score margin | **+0.78 ± 0.23** | **+3.4** | +0.54 ± 0.21 | +2.6 |
+  | our banked | −0.33 ± 0.21 | −1.6 | −0.24 ± 0.16 | −1.5 |
+  | deaths | +0.00 ± 0.02 | 0.1 | −0.02 ± 0.02 | −1.2 |
+
+- **Conclusion:** the banking drop is within noise and has no structural cause, so there's nothing to fix on the attack side. F11's defence gain is strongly significant and shows up as margin (z = 3.4). Points (W/T/L) are coarser and reach only z = 1.86, because most extra margin lands in games that were already won.
+- **Options:**
+  1. Accept F11 on the margin evidence. This would be a change of acceptance rule, so it's the user's decision. Margin is the league's tie-break.
+  2. Stack another defence gain on F11 to turn margin into results. F9's home hunt (+40% kills, near-free) and F10-lite (guard a big late lead) both failed because our ghosts couldn't catch anyone, which F11 addresses.
+
 ### F11b: F11 racing only invaders that carry food: neutral, code kept (2026-11-06)
 - **Idea:** F11 lost about 0.6 banked per game. The guess was that the cost came from brief border fights with empty-handed invaders, where the race term holds our ghost at an exit instead of letting it chase and go back to attacking.
 - **Change:** F11, but the race term is applied only to invaders carrying ≥ `RACE_CARRY` (1) at the search root. Empty-handed ones get v1's `8 · home_escape_gap`. Deciding at the root keeps the evaluation consistent within one search.
