@@ -78,6 +78,10 @@ class SmartAgent(CaptureAgent):
     CAPSULE_FIRST_PENALTY = 200 # per defended capsule it reaches first
     SCARED_PENALTY = 500        # we are scared (it ate a capsule)
 
+    # Scared window (F16): use it, don't get stuck in it.
+    SCARED_BANK_MARGIN = 3      # bank when the guards recover within home distance + this
+    PREY_TRAP_RANGE = 8         # chase a scared ghost trapped in a pocket at most this far
+
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
         self.start = None
@@ -646,9 +650,12 @@ class SmartAgent(CaptureAgent):
         if must_return or wins_game:
             return self.go_home(game_state, cost_fn, blocked)
 
-        # 2. A scared ghost right next to us: eat it, it costs the enemy a long walk.
+        # 2. A scared ghost we can surely catch: eat it, it costs the enemy a
+        #    long walk. Only when it is adjacent (stepping on it eats it) or
+        #    trapped in a pocket we block; chasing a free one just loops
+        #    around a block until its timer runs out (F16).
         prey = [g for g, t in self.enemy_ghosts(game_state)
-                if t > 2 and self.dist(my_pos, g) <= 2 and not self.is_home(g)]
+                if t > 2 and not self.is_home(g) and self.catchable(my_pos, g, t)]
         if prey and my_state.is_pacman:
             act = self.step_towards(game_state, prey, cost_fn, self.ghost_blocked(ghosts))
             if act:
@@ -684,8 +691,23 @@ class SmartAgent(CaptureAgent):
             self.banking = True
             return self.go_home(game_state, cost_fn, blocked)
 
+        # 4b. The guards are about to recover: bank what we carry while the
+        #     way home is still free (F16, user's idea).
+        scared_left = self.enemies_scared(game_state)
+        if scared_left and carrying > 0 and scared_left <= home_dist + self.SCARED_BANK_MARGIN:
+            self.banking = True
+            return self.go_home(game_state, cost_fn, blocked)
+
         # 5. Eat safe food, avoiding the teammate's target.
         targets = self.safe_food(my_pos, food, ghosts)
+        if scared_left and carrying > 0:
+            # Only food we can still bring home before the guards recover.
+            in_time = [f for f in targets if self.dist(my_pos, f) + self.home_distance(f)
+                       + self.SCARED_BANK_MARGIN < scared_left]
+            if not in_time:
+                self.banking = True
+                return self.go_home(game_state, cost_fn, blocked)
+            targets = in_time
         mate_target = self.mate_target()
         if mate_target is not None and len(targets) > 3:
             targets = [f for f in targets if self.dist(f, mate_target) > 4] or targets
@@ -722,6 +744,17 @@ class SmartAgent(CaptureAgent):
             return self.go_home(game_state, cost_fn, blocked)
         self.team()['targets'][self.index] = target
         return self.action_to(game_state, step)
+
+    def catchable(self, my_pos, ghost, scared):
+        """A scared ghost we can surely eat before its timer runs out."""
+        d = self.dist(my_pos, ghost)
+        if d == 1:
+            return True   # we move now: stepping onto it eats it
+        if d > min(scared - 1, self.PREY_TRAP_RANGE) or self.depth.get(ghost, 0) == 0:
+            return False
+        mouth = self.entrance[ghost]
+        # Trapped: we are closer to the pocket's only way out than it is.
+        return self.dist(my_pos, mouth) < self.dist(ghost, mouth)
 
     def enemies_scared(self, game_state):
         """Moves the enemy ghosts stay scared for (0 if any is not scared)."""
