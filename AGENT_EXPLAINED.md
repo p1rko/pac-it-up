@@ -77,7 +77,12 @@ The rules forfeit a game after 3 slow moves or any exception. So:
 Priority list, top to bottom:
 1. **Bank it** if time is nearly out (moves left ≤ distance home + 3), or if the food we carry
    wins the game.
-2. **Eat a scared ghost** that is right next to us. It costs the enemy a long walk back.
+2. **Eat a scared ghost we can surely catch** (v3): it's right next to us (stepping onto it eats
+   it), or it's trapped in a pocket and we are closer to the pocket's mouth (at most 8 steps,
+   within its timer). It costs the enemy a long walk back. Before v3 we chased any scared ghost
+   within 2 steps. A ghost circling a 2×2 block can't be caught that way, and our attacker
+   shuffled next to it, often carrying food, until the timer ran out (7.8 wasted moves per
+   scared window).
 3. **Being chased:** run for a capsule if we get there before the ghost. Otherwise run home if
    carrying food.
 4. **Carry limit:** go home after 7 dots (5 if home is far). The limit is raised while the
@@ -87,6 +92,10 @@ Priority list, top to bottom:
    attacker carrying 5–6 flipped between eating and going home on every move. Only steps 1–3
    can interrupt the walk home. The commitment is dropped when the guards are scared long enough
    for the unlimited mode.
+   **Bank before the guards recover** (v3, the user's idea): while the guards are scared and we
+   carry food, we go home once their timer is ≤ our distance home + 3 (`SCARED_BANK_MARGIN`).
+   Until then we only target food we can reach *and* bring home before the timer ends. Food
+   banked inside a scared window went from 1.6 to 5.6 per window.
 5. **Pick a target dot** from the *safe* food: no ghost is closer to it than we are, and no ghost
    can cut us off at the pocket exit. Prefer dots that are close to us, far from where the guards
    probably are, and (when carrying) not far from home. Avoid the teammate's target so the two
@@ -170,6 +179,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | v0 | baseline of this log (2.14 pts/game, 1st of 8 in the Cycle 0 round-robin) | — | — |
 | **v1** | commit to banking (no eat ↔ go-home flip at the carry-limit cliff) | −0.00 ± 0.05 | **+0.24 ± 0.06** (W-T-L 150-29-61 → 169-30-41, better against every opponent) |
 | **v2** | F11: defender fight evaluation races the invader to exits, food and capsules | +0.09 ± 0.08 | +0.06 ± 0.06, unseen holdout +0.07 ± 0.06; pooled points z 1.86, **margin +0.78 (z 3.4), food conceded −1.11 (z −5.0)**; accepted by the user on margin |
+| **v3** | F16: scared-window discipline (sure-catch prey only; bank before the guards recover) | **+0.12 ± 0.05** | **+0.10 ± 0.05** (both pass the gate; pooled +0.11 ± 0.035, z 3.1; holdout margin +1.34, banked +0.94) |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
@@ -193,5 +203,6 @@ python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fas
 
 ## 8. Tunable knobs (top of `SmartAgent` / `FlexAgent`)
 `CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
-`DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`.
+`DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`, `SCARED_BANK_MARGIN`,
+`PREY_TRAP_RANGE`.
 If the tournament machine turns out slower, lower `SEARCH_TIME` first.

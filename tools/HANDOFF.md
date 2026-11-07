@@ -3,13 +3,15 @@
 Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
 
 ## State in one glance
-- **Resume here (2026-11-07):** work on `optimize-loop` (pushed). `my_team.py` = v2 = `strategies/history/v2.py`. The last session ended after F14 (capsule guard, parked at z 1.6). The user hadn't picked the next step: proactive capsule cover (recommended), calmer opening, or accepting F14 on margin (not recommended: blitz −0.14). Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
-- **Champion: v2** = F11, `strategies/history/v2.py`, on pushed `optimize-loop`. Previous: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
+- **Resume here (2026-11-08):** champion is **v3** = F16, scared-window discipline (`strategies/history/v3.py`, on `optimize-loop`). It passed the gate on both train (+0.12) and holdout (+0.10) against v2. F15 and F15b (capsule cover) were parked at ±0.00. The user has further suggestions (unrelated to the scared window) to discuss next. Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
+- **Champion: v3** = v2 + F16, `strategies/history/v3.py`, on `optimize-loop`. Before that: **v2** = F11, `strategies/history/v2.py`. Before that: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
   - v1 = v0 + **F5a commit to banking**: once the carry limit sends an agent home, it keeps going home.
   - Holdout A/B against v0: **+0.24 ± 0.06** pts/game, better against every opponent.
 - **Branches:**
   - `main`: old; does not have v1 yet. The tournament probably reads `main`, so merge before submitting.
-  - `optimize-loop`: pushed, at v2 (2026-11-06). **The base for new work; A/B against `strategies/history/v2.py`.**
+  - `optimize-loop`: at v3 (2026-11-08). **The base for new work; A/B against `strategies/history/v3.py`** (swap `v2=strategies/history/v2.py` for `v3=strategies/history/v3.py` in the commands below).
+  - `f16-scared-window`: F16 = v3, merged into `optimize-loop`.
+  - `f15-capsule-cover`, `f15b-flex-cover`: local, F15/F15b records (parked); records also merged into `optimize-loop`.
   - `f9-home-hunt`: local, not pushed, at `3844ea5` + this file. Holds the F9 record, `tools/raid_probe.py` and `diagnose.py leads`. `my_team.py` there is still v1. Merge it into `optimize-loop` with the next accepted version, or now if the tools are wanted there.
   - `f10-protect-lead`: local, not pushed, branched from `f9-home-hunt`. Holds the F10 record (rejected).
   - `f11-defend-catch`: local, not pushed, branched from `f10-protect-lead`. Holds the F11 record (parked at z = 1.86) and `tools/chase_probe.py`.
@@ -85,12 +87,17 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F11 | defender fight eval races the invader to exits/food/capsules (both home ghosts) | train +0.09, holdout +0.06, unseen +0.07; pooled **+0.072 ± 0.039 (z 1.86)**, parked; conceded −0.6 to −1.6, banked −0.6 | `experiments/f11_race_eval.py` |
 | F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
 | **v2** | **= F11, accepted by the user on margin** | | `history/v2.py` |
+| **F16 = v3** | **scared-window discipline: sure-catch prey only; bank before the guards recover (user's idea)** | **train +0.12, holdout +0.10, both pass; pooled +0.11 ± 0.035 (z 3.1); oscillation 7.8 → 1.7/window, banked in window 1.6 → 5.6** | `history/v3.py` |
 | F14 | capsule guard (race to a capsule an invader is near) | train +0.10, holdout −0.00, unseen +0.05; pooled +0.05 ± 0.031 (z 1.6), parked; blitz −0.14 | `experiments/f14_capsule_guard.py` |
 | F13 | analysis: where v2 concedes | big raids 1.1/game = 80% of conceded; half capsule; 84% first half | `tools/raid_fate_probe.py` |
+| F15 | proactive capsule cover by home ghosts (never recalls attackers) | train +0.05, holdout −0.05; pooled ±0.00, parked; conceded −0.88, capsules eaten −8%, big raids −10%, but banked −0.60 | `experiments/f15_capsule_cover.py`, branch `f15-capsule-cover` |
+| F15b | F15, cover by Flex only | train +0.12 (gate passed), holdout −0.11; pooled ±0.00, parked; dario +0.40/+0.33, search flips by map pool | `experiments/f15b_flex_cover.py`, branch `f15b-flex-cover` |
 | F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
-1. **Proactive capsule cover** (F14 revive): F14's reactive race barely reduced capsules eaten (0.90 → 0.85/game) because the race is usually lost 3+ steps before it fires. Position a home ghost to cover the most exposed capsule before the invader is close (`patrol_point`).
+1. **The user's further suggestions** (from watching games; not yet discussed).
+2. F16 tuning: `SCARED_BANK_MARGIN` 2 or 4; scared ghosts eaten fell 0.66 → 0.52 per window, so test `PREY_TRAP_RANGE` larger or a sure-catch check at distance 2 without a pocket (e.g. a ghost in a corridor with no escape).
+3. F15/F15b revive: gate the capsule cover by map shape or by opponent (consistent Dario gain).
 2. **Calmer opening** (F13): 84% of big raids start in the first half, often as we cross at the same moment. Hold Flex at the border until the first invader shows, or turn back for an invader seen near the border. Can be stacked on F14.
 3. **F10 revive on top of v2:** big lead (≥ 5), very late (< 75 moves). Low ceiling: late big raids are only 3% (F13).
 4. **F12 revive (cheap):** home hunt only by an agent already a ghost at home, only for invaders carrying 5+.

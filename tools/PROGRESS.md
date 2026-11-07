@@ -147,3 +147,20 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Against v2: train +0.10 ± 0.05, holdout −0.00, unseen +0.05; pooled **+0.05 ± 0.031 (z 1.6)**; blitz −0.14 (z −1.9).
   - Conceded −0.40/game, banked −0.26. Capsules eaten only 0.90 → 0.85/game: most capsule races are lost 3+ steps before a reactive guard could act.
   - Saved as `strategies/experiments/f14_capsule_guard.py`; champion stays v2. Next: proactive capsule cover, or the calmer opening.
+- **Attempt 7: F15, proactive capsule cover** (2026-11-07). Neutral, parked.
+  - Against v2: train +0.05 ± 0.06, holdout −0.05 ± 0.06; pooled **±0.00 ± 0.04**. No crashes or warnings.
+  - The defence works: conceded −0.88/game, capsules eaten 0.79 → 0.73, big raids 1.02 → 0.92/game. But banked fell 0.60 (Raider Pacman turns −5): the food we save, we fail to bank.
+  - Saved as `strategies/experiments/f15_capsule_cover.py`; champion stays v2. Next: F15b, cover by Flex only, or cover only in the opening.
+- **Attempt 8: F15b, capsule cover by Flex only** (2026-11-07). Neutral, parked.
+  - Against v2: train **+0.12 ± 0.05** (gate passed), holdout −0.11 ± 0.07; pooled **±0.00 ± 0.04**.
+  - Dario +0.40 / +0.33 both times; search flips between map pools as in F15. Banked still −0.78 on holdout.
+  - Saved as `strategies/experiments/f15b_flex_cover.py`; champion stays v2.
+- **Analysis: the scared window (user's observations, 2026-11-07).** New `tools/scared_window_probe.py`.
+  - v2, 480 games: 0.77 windows per game. In 45% of them an attacker shuffles A-B-A next to a scared ghost, about 17 moves each time. Example: game `20261107-204214-ab-0244`, moves 620–682, a 2×2 loop around a ghost, carrying 8 food 6 steps from home.
+  - Cause: the `attack()` step-2 prey chase fires whenever a scared ghost is within 2 steps, with no check that it can be caught, and before banking.
+  - Deaths right after a window are rare: 14 in 480 games, 0.12 food/game; 98% of the food carried at a window's end is banked later (median 65 moves later).
+  - Next: F16, scared-window discipline.
+- **Attempt 9: F16, scared-window discipline** (2026-11-08). **Accepted as v3.**
+  - Against v2: train **+0.12 ± 0.05**, holdout **+0.10 ± 0.05**, both pass the gate; pooled +0.11 ± 0.035 (z 3.1). Holdout margin +1.34, banked +0.94. No crashes or warnings.
+  - Oscillating moves near scared ghosts 7.8 → 1.7 per window; food banked inside a window 1.6 → 5.6.
+  - Frozen as `strategies/history/v3.py`; new changes are A/B'd against v3.

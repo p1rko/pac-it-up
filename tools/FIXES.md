@@ -223,6 +223,41 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F15: proactive capsule cover: defence works, banking pays for it; neutral, parked (2026-11-07)
+- **Idea (F14 revive #1, #3, #4):** cover the capsule *before* the invader is close, never recall an attacker, and drop the slack cap.
+- **Change:** `SmartAgent.capsule_cover()`, called first in `FlexAgent.decide` and after the Raider's late-lead guard. A ghost of ours at home (unscared, carrying 0) moves towards a defended capsule whenever a threat is within `COVER_RADIUS` (10) of it and we are not at least `COVER_MARGIN` (2) steps closer. The teammate takes it if it is better placed. Threats are invaders, and enemy ghosts that have invaded before (`invader_turns > 0`), or any enemy in the first `COVER_OPENING` (40) turns. This keeps a turtle's border guard from pinning us. `patrol_point` also weights capsules ×`PATROL_CAPSULE_WEIGHT` (5). Branch `f15-capsule-cover` (`234092e`), saved as `strategies/experiments/f15_capsule_cover.py`.
+- **A/B against v2** (480 games each, 0 crashes, 0 warnings, max move 0.37 s):
+
+  | batch | run | Δ points/game | margin | banked | conceded |
+  |---|---|---|---|---|---|
+  | train | `20261107-204214-ab` | +0.05 ± 0.06 | +0.58 | −0.12 | −0.70 |
+  | holdout | `20261107-210407-ab` | −0.05 ± 0.06 | −0.02 | −1.07 | −1.05 |
+  | **pooled** | | **±0.00 ± 0.04** | +0.28 | −0.60 | −0.88 |
+
+  By opponent: search swung +0.30 (train) / −0.38 (holdout); blitz +0.15 / −0.05 (F14's blitz cost is gone); turtle −0.12 / −0.07.
+- **Target metrics (both runs, F15 vs v2):** capsules eaten by invaders 0.79 → 0.73/game; big raids (5+) 1.02 → 0.92/game, food 7.63 → 6.69; big capsule raids 229 → 209; big raids never touched by a ghost 247 → 189. Conceded by raids 9.48 → 8.59/game. "No eligible guard" at the capsule race 94 → 77.
+- **Why it doesn't score:** the cost is attack time. `role_probe`: Raider Pacman turns 118.1 → 112.7, banked 8.1 → 7.9; Flex 91.3 → 89.6, 7.5 → 7.2; free ghost turns at home up about 5 per role. Every food we stop costs us about the same food in our own banking.
+- **Revive ideas:**
+  1. Cover by Flex only: the Raider keeps attacking, so most of the banking cost goes away.
+  2. Cover only during the opening (most capsule raids are in the first half), then plain v2.
+  3. Cover only from an agent that is idle anyway (stalled at the border), not from one just leaving home.
+  4. Stack on the calmer opening (F13 #2).
+
+### F15b: capsule cover by Flex only: neutral, parked (2026-11-07)
+- **Change:** F15 with `capsule_cover()` called only from `FlexAgent.decide`, and without the teammate hand-off. The Raider never covers. Branch `f15b-flex-cover` (`5ad3b8b`), saved as `strategies/experiments/f15b_flex_cover.py`.
+- **A/B against v2** (480 games each, 0 crashes):
+
+  | batch | run | Δ points/game | margin | banked | conceded |
+  |---|---|---|---|---|---|
+  | train | `20261107-223045-ab` | **+0.12 ± 0.05** (gate passed) | +0.75 | −0.12 | −0.87 |
+  | holdout | `20261107-225307-ab` | −0.11 ± 0.07 | −0.15 | −0.78 | −0.62 |
+  | **pooled** | | **±0.00 ± 0.04** | +0.30 | −0.45 | −0.75 |
+
+  By opponent (train / holdout): dario +0.40 / +0.33 (consistently better), search +0.38 / −0.42, tracking −0.07 / −0.33, turtle −0.07 / −0.25, blitz −0.05 / +0.07, reflex +0.12 / −0.05.
+- **Reading:** search flipped sign between the map pools in both F15 (+0.30 / −0.38) and F15b. That looks like a map-dependent effect, not noise: the cover helps on train maps and hurts on holdout maps. The banking cost stayed on holdout (−0.78) even with only Flex covering. The Dario gain is the one consistent signal.
+- **Timing:** max move 0.43 s, 0 warnings for us. v2 had 10 warnings on holdout because replay probes were running in parallel. Don't run probes during an A/B.
+- **Revive ideas:** find which holdout maps lose (`query.py` by layout). If they share a shape (for example, a capsule near the border), gate the cover on it. Or use the cover only against opponents that eat capsules often (Dario: 111 of 141 big raids involve a capsule).
+
 ### F14: capsule guard: positive but not significant, parked (2026-11-06)
 - **Idea (from F13):** half of v2's big raids involve a capsule. Race an invader to a capsule it's close to.
 - **Change:** `SmartAgent.capsule_guard()`, called first by both roles (after the Raider's late-lead guard). It fires when an invader on our side is within `CAP_GUARD_RADIUS` (10) of one of our capsules. The nearest unscared teammate that's at home, or attacking within `CAP_GUARD_RECALL` (3) of our border, walks to the capsule (or stays on it), but only while the race is tight: at most as far as the invader and no more than `CAP_GUARD_SLACK` (2) ahead. Branch `f14-capsule-guard` (`dee79b0`), saved as `strategies/experiments/f14_capsule_guard.py`.
@@ -440,6 +475,24 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 - **Idea:** give each agent its own crossing (upper and lower half of the border), and keep Flex home when the trip to the border is long.
 
 ## Fixed
+
+### F16: scared-window discipline (the user's observations): **accepted as v3** (2026-11-08)
+- **What the user saw:** (1) an attacker next to a scared ghost in a 2×2 block shuffles back and forth until the timer ends; (2) an attacker eats and chases during the window, then the guards recover while it's far from home with food.
+- **Measured** (`tools/scared_window_probe.py`, v2, 480 games): in 46% of scared windows an attacker oscillates next to a scared ghost, 7.8 wasted moves per window. Example `20261107-204214-ab-0244`, moves 620–682: carrying 8 food, 6 steps from home. Cause: `attack()` step 2 chased any scared ghost within 2, ahead of banking. Deaths right after a window were rare (0.12 food/game). The bigger loss was time: only 1.6 food per window was banked inside it.
+- **Change** (branch `f16-scared-window`, `f9177aa`):
+  1. `catchable()`: chase a scared ghost only when it's adjacent, or trapped in a pocket where we're closer to the mouth (≤ `PREY_TRAP_RANGE` 8, within its timer).
+  2. Step 4b: while the guards are scared and we carry food, bank once their timer ≤ home distance + `SCARED_BANK_MARGIN` (3). Until then, target only food with dist(us, food) + home distance(food) + 3 < timer.
+- **A/B against v2** (480 games each, 0 crashes, 0 warnings, max move 0.34 s):
+
+  | batch | run | Δ points/game | margin | banked | conceded |
+  |---|---|---|---|---|---|
+  | train | `20261107-234257-ab` | **+0.12 ± 0.05** (gate passed) | +0.73 | +0.15 | −0.58 |
+  | holdout | `20261108-000312-ab` | **+0.10 ± 0.05** (gate passed) | +1.34 | +0.94 | −0.40 |
+  | **pooled** | | **+0.11 ± 0.035 (z 3.1)** | +1.04 | +0.55 | −0.49 |
+
+  By opponent (train / holdout): blitz +0.23 / +0.05, dario +0.05 / +0.23, reflex +0.42 / +0.03, search +0.20 / −0.05, tracking −0.20 / +0.20, turtle ±0.00 / +0.15.
+- **Mechanism (same runs):** oscillating moves near a scared ghost 7.8 → 1.7 per window; food banked inside windows 1.6 → 5.6 per window; scared ghosts eaten 0.66 → 0.52 per window; carrying 9+ steps from home when the window ends 295 → 174.
+- Frozen as `strategies/history/v3.py`.
 
 ### F5a: banking flip at the carry-limit cliff: v1 (2026-11-04)
 Commit to banking once the carry limit sends us home. Holdout +0.24 ± 0.06 pts/game (`20261104-154525-ab`). Details are under F5 in "In progress"; F5's crossing standoff part is still open.
