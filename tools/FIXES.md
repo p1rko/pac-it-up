@@ -223,6 +223,62 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F17a: trap rooms as dead ends (the user's "remember dead ends" idea): fewer deaths, less banking; neutral, parked (2026-11-08)
+- **User's observation:** our Pacman got caught after walking into a dead end. The agent already knows every simple dead end from turn 1, so nothing has to be remembered during play. The question is why it still dies in them.
+- **Analysis** (new `tools/deadend_probe.py`, v3, 480 games): 0.30 deaths per game as Pacman; 65% in dead ends (331 of 469 food lost). 64 in known pockets, **30 in trap rooms**: areas with loops inside and a single door cell, which leaf pruning can't see (42 of 80 map/side combos have one). In 34 of 94 dead-end deaths no enemy ghost was visible when we went in; `safe_food()` only counts visible ghosts.
+- **Change:** `_find_trap_rooms()` after the leaf pruning in `_compute_dead_ends()`. For each non-pocket cell taken as a door, cells on that side cut off from the far border become a room (≤ `TRAP_MAX_SIZE` 30 cells, largest room wins). Their `entrance` is the door and their `depth` is the distance to it. Done for both sides, so defenders can trap invaders too. Init cost ≤ 0.05 s. Branch `f17-trap-rooms` (`4496a0a`), saved as `strategies/experiments/f17a_trap_rooms.py`.
+- **A/B against v3** (480 games each, 0 crashes or warnings; max move 0.58 s on holdout, p99 0.30):
+
+  | batch | run | Δ points/game | margin | banked | food lost | deaths |
+  |---|---|---|---|---|---|---|
+  | train | `20261108-100742-ab` | +0.03 ± 0.03 | −0.72 | −0.35 | −0.23 | −0.04 |
+  | holdout | `20261108-102736-ab` | −0.05 ± 0.03 | −0.05 | −0.25 | −0.15 | −0.06 |
+  | **pooled** | | **−0.01 ± 0.02** | | −0.30 | −0.19 | −0.05 |
+
+  Many opponent rows are exactly ±0.00: maps without trap rooms play out identically.
+- **Mechanism (deadend_probe, same games):** deaths 147 → 122; trap-room deaths 29 → 18; pocket deaths 64 → 52; food lost 1.03 → 0.84 per game.
+- **Why it doesn't score:** the caution costs as much banking (−0.30) as it saves in food lost (−0.19) plus the respawn walks. Rooms of up to 30 cells make a lot of food "unsafe" whenever a ghost is near the door.
+- **Revive ideas:**
+  1. Scale caution by what we'd lose: apply the trap-room and dead-end checks only when carrying ≥ 3. 18 of v3's deaths and 28 of F17a's carried nothing, and the food lost is concentrated in deaths carrying 5+.
+  2. Smaller `TRAP_MAX_SIZE` (e.g. 12): only the tight rooms like the 2×2 block.
+  3. F17b, unseen guards (believed ghost positions in `safe_food` for dead-end food). Expect the same caution trade unless combined with idea 1.
+
+### F17c: trap rooms only when carrying ≥ 3: no effect either way; parked (2026-11-08)
+- **Change:** F17a's room maps are kept separate (`room_depth`, `room_entrance`). A Pacman uses them in `safe_food()` and `ghost_cost_fn()` only when carrying ≥ `CAREFUL_CARRY` (3); otherwise it plays exactly like v3. Defenders' `intercept_point()` always uses them. `catchable()` stays on plain pockets, because a scared ghost can circle inside a room. Branch `f17c-careful-carry` (`c9cf2da`), saved as `strategies/experiments/f17c_careful_carry.py`.
+- **A/B against v3** (0 crashes or warnings, max move 0.31 s): train `20261108-110332-ab` +0.01 ± 0.01, holdout `20261108-112318-ab` −0.03 ± 0.03; pooled **−0.01 ± 0.02**. Banked −0.06 / −0.14, deaths ±0.00 / −0.02.
+- **deadend_probe:** trap-room deaths 30 → 26, food lost 1.04 → 1.02 per game, i.e. almost nothing changed. The banking cost is gone, but so is the benefit.
+- **What F17a + F17c show together:** the trap-room deaths are rarely prevented by the visible-ghost checks while carrying. The killers are usually 11+ steps away and often unseen when we go in. F17a only cut deaths through blanket avoidance (any time a ghost was visible), which cost food. The deaths come from **lingering inside** a dead end while a ghost walks up to the door, not from a bad entry decision.
+- **Revive idea (F17d, "watch the door"):** while inside a pocket or trap room, carrying food, leave via the door as soon as any enemy ghost (seen, or its believed position) can reach the door no later than we can. Ceiling stays about 0.7 food/game in total for all dead-end deaths.
+
+### F18 / F18b: calm opening: rejected (2026-11-08)
+- **Idea (F13 #2):** 84% of big raids start in the first half, often as both of ours cross over. Keep Flex home at the start.
+- **Change:** `FlexAgent.opening_hold()`: while it has made ≤ `OPEN_HOLD` moves, Flex calls `defend()` until the first enemy raid is over (an enemy was a Pacman and none is now). Branch `f18-calm-opening` (`d436650`, `34522e0`).
+- **A/B against v3** (0 crashes or warnings, max move 0.32 s):
+
+  | | F18 (75) train `20261108-142101-ab` | F18 holdout `-144146-ab` | F18b (35) train `-150153-ab` | F18b holdout `-152219-ab` |
+  |---|---|---|---|---|
+  | Δ pts/game | −0.15 ± 0.10 | −0.07 ± 0.09 | −0.15 ± 0.09 | −0.08 ± 0.07 |
+  | our banked | −2.46 | −1.87 | −1.55 | −1.32 |
+  | invader food banked | −0.48 | −1.89 | −0.11 | −0.90 |
+  | worst opponent | tracking −0.72 | blitz −0.40 | tracking −0.40 | blitz −0.30 |
+
+- **Why:** the defence gain is real (holdout conceded −1.9) but at best equals the food Flex stops banking, and the extra conceded food on train barely moves. Same lesson as F1/F2/F15: attack throughput wins in this field.
+- **Revive ideas:** only against opponents with an early rush (detect a crossing in the first ~15 moves), or hold only while the Raider is also within a few steps of the border.
+
+### F17d: watch the door: deaths −20%, food lost −31%, banking intact, points flat; parked (2026-11-08)
+- **Change** (on top of F17c): `door_threatened(cell, d_me)`. (1) Step 2b of `attack()`: inside a pocket or trap room with food, go home as soon as any enemy ghost can reach the door within our distance + `DOOR_MARGIN` (1). An unseen ghost is placed at its `most_likely` cell, with `DOOR_BELIEF_SLACK` (2) extra margin. Ghosts still scared when it matters are ignored. (2) While carrying, skip dead-end food whose door would be threatened by the time we're back out (no re-entry bounce). Branch `f17d-watch-door` (`9cd82bd`), saved as `strategies/experiments/f17d_watch_door.py`.
+- **A/B against v3** (0 crashes or warnings, max move 0.31 s):
+
+  | batch | run | Δ points/game | margin | banked | food lost | deaths |
+  |---|---|---|---|---|---|---|
+  | train | `20261108-120119-ab` | −0.02 ± 0.04 | −0.58 | −0.08 | −0.28 | −0.02 |
+  | holdout | `20261108-122051-ab` | +0.01 ± 0.05 | +0.16 | +0.02 | −0.35 | −0.10 |
+  | **pooled** | | **−0.00 ± 0.03** | | −0.03 | −0.32 | −0.06 |
+
+- **Mechanism (deadend_probe):** deaths 148 → 118; pocket deaths 63 → 43 (food lost there 218 → 113); deaths carrying 5+ 40 → 23; deaths after an unseen entry 33 → 16. Food lost 1.04 → 0.72 per game. **It does what it was built to do, at no banking cost.**
+- **Why points don't move:** the engine (`capture.py`, `dump_food_from_death`) drops a dead Pacman's food back on the map next to where it died. It isn't scored for the enemy, so "food lost" isn't conceded points, only food we have to collect again. A death costs time (the walk from spawn plus re-collecting), and v3 dies only 0.3 times per game. **The dead-end line has a near-zero ceiling in points; closed unless combined with something that converts saved time into banking.**
+- **Lesson for the metrics:** `food_lost` overstates the cost of a death. Judge attack changes by `banked` and points.
+
 ### F15: proactive capsule cover: defence works, banking pays for it; neutral, parked (2026-11-07)
 - **Idea (F14 revive #1, #3, #4):** cover the capsule *before* the invader is close, never recall an attacker, and drop the slack cap.
 - **Change:** `SmartAgent.capsule_cover()`, called first in `FlexAgent.decide` and after the Raider's late-lead guard. A ghost of ours at home (unscared, carrying 0) moves towards a defended capsule whenever a threat is within `COVER_RADIUS` (10) of it and we are not at least `COVER_MARGIN` (2) steps closer. The teammate takes it if it is better placed. Threats are invaders, and enemy ghosts that have invaded before (`invader_turns > 0`), or any enemy in the first `COVER_OPENING` (40) turns. This keeps a turtle's border guard from pinning us. `patrol_point` also weights capsules ×`PATROL_CAPSULE_WEIGHT` (5). Branch `f15-capsule-cover` (`234092e`), saved as `strategies/experiments/f15_capsule_cover.py`.
