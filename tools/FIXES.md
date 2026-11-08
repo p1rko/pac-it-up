@@ -250,6 +250,21 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 - **What F17a + F17c show together:** the trap-room deaths are rarely prevented by the visible-ghost checks while carrying. The killers are usually 11+ steps away and often unseen when we go in. F17a only cut deaths through blanket avoidance (any time a ghost was visible), which cost food. The deaths come from **lingering inside** a dead end while a ghost walks up to the door, not from a bad entry decision.
 - **Revive idea (F17d, "watch the door"):** while inside a pocket or trap room, carrying food, leave via the door as soon as any enemy ghost (seen, or its believed position) can reach the door no later than we can. Ceiling stays about 0.7 food/game in total for all dead-end deaths.
 
+### F19c: only the Raider pushes: positive on all three pools, recommended as v5 (2026-11-08)
+- **Idea (the user's pick):** F19b pushed with both agents and conceded +0.20 food per game, turning some ties into losses. Keep Flex home instead.
+- **Change:** F19b, plus `FlexAgent.decide()` calls `defend()` whenever `deadlocked()` and it carries nothing. Branch `f19c-raider-push`.
+- **Deadlock maps** (8 maps × reflex/blitz, both colours): v4 8-22-0, F19b 12-15-3, **F19c 14-13-2**.
+- **A/B against v4** (0 crashes or warnings, max move 0.31 s):
+
+  | | train `20261108-215556-ab` | holdout `-221519-ab` | unseen holdout 20–39 `-223302-ab` |
+  |---|---|---|---|
+  | Δ pts/game | +0.05 ± 0.05 | +0.05 ± 0.04 | +0.03 ± 0.03 |
+  | W-T-L v4 → F19c | 165-30-45 → 170-26-44 | 180-29-31 → 187-20-33 | 172-22-46 → 175-19-46 |
+
+  - **Pooled over 720 pairs: +0.040 ± 0.023, z 1.77.** By opponent: reflex +0.16 ± 0.07 (z 2.3), search +0.09, blitz +0.03, turtle 0.00, dario −0.01, tracking −0.03 ± 0.06. Conceded +0.01 (F19b +0.20), banked +0.11.
+  - Counting both sides (win 3, tie 1, loss 0): our net +29 points, the opponents' −7.
+  - More games differ than with F19b (63 against 27), partly from search timing noise: v4's own W-T-L differs a little between runs.
+
 ### F19b: deadlock push with both agents: borderline positive, waiting for the user (2026-11-08)
 - **Evidence:** in v4's remaining 0–0 games our agents often never cross. Replay of RANDOM841236 vs reflex: the bold plan blocked the cells around the seen guard (17,10) and around the *believed* second guard at (21,8) (really at (17,11)). Together they sealed every corridor, so the plan found no route and `reposition()` flipped with the safe-food check.
 - **Change** (only in `deadlocked()` games): believed guards add cost but no longer block. The Raider (`BAIT = True`) plans with only the guards' own cells blocked and skips the fight search for that move: it carries nothing, so being eaten only costs time, and a guard that chases it leaves its corridor. Flex (`BAIT = False`) keeps the safe bold route. Branch `f19b-deadlock-push` (`f54afe0`).
