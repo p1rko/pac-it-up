@@ -1101,6 +1101,10 @@ class FlexAgent(RaiderAgent):
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+        if my_state.num_carrying == 0 and self.deadlocked(game_state):
+            # Tied late: the Raider pushes alone; Flex guards home so the push
+            # can't hand the opponent the winning dot (F19c).
+            return self.defend(game_state, others=self.mate_handling(game_state))
         if my_state.num_carrying == 0 and my_state.scared_timer == 0:
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
