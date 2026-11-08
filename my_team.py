@@ -1031,11 +1031,25 @@ class FlexAgent(RaiderAgent):
     DANGER_HAUL = 4
     FREE_DEFENCE = 40       # defend turns allowed before catches are required
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
+    OPEN_HOLD = 75          # opening: guard home until the first raid is over, at most this many own moves
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
         self.defend_turns = 0
         self.catches = 0
+        self.raid_seen = False
+
+    def opening_hold(self, game_state):
+        """
+        Calm opening: most big raids against us start early, often just as we
+        cross over. Stay home until the first invader has come and gone (eaten
+        or back home), or the opening is over.
+        """
+        if len(self.observation_history) > self.OPEN_HOLD:
+            return False
+        invading = any(game_state.get_agent_state(e).is_pacman for e in self.get_opponents(game_state))
+        self.raid_seen = self.raid_seen or invading
+        return invading or not self.raid_seen
 
     def count_catches(self, game_state):
         """An invader that was next to us last turn and is now gone or back at spawn was eaten by us."""
@@ -1057,6 +1071,8 @@ class FlexAgent(RaiderAgent):
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+        if my_state.num_carrying == 0 and self.opening_hold(game_state):
+            return self.defend(game_state, others=self.mate_handling(game_state))
         if my_state.num_carrying == 0 and my_state.scared_timer == 0:
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
