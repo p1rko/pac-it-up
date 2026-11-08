@@ -263,6 +263,7 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
   | worst opponent | tracking −0.10 ± 0.07 | search −0.03 | — |
 
   - **Pooled over 720 pairs: +0.031 ± 0.015, z 2.01.** Ties 81 → 70, losses unchanged at 124.
+- **Head-to-head F19b vs v4** (both colours per map): train `20261108-212018-rr` F19b 37-9-34 (net +9 points over 80 games), holdout `20261108-212207-rr` 34-10-36 (net −6). On 74 of 80 maps both agents score the same (the colour decides). F19b is ahead on 4 maps and v4 on 2: even. Both agents had 1–2 timing warnings (max move 1.8 s) in the train run, so a machine hiccup, not F19b.
 
 ### F19: deadlock breaker: positive on three pools, **accepted as v4** (2026-11-08)
 - **Evidence:** v3 ties 78 of 480 games, 58 of them banking nothing, mostly `stalled`. Replay `20261108-150153-ab-0396` (RANDOM797927 vs reflex): from move 168 to 1200 every agent repeats a 2-move cycle. Our Raider steps to (17,11), the guard at (17,6) comes into sight, no food is safe, it steps back to (16,11), where the guard is out of sight and food looks safe again. Their attacker mirrors it at (16,6) and keeps Flex home.

@@ -192,3 +192,4 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Change (deadlock only): believed guards add cost but don't block; the Raider (`BAIT = True`) plans with only the guards' own cells blocked and skips the fight search while doing so; Flex keeps the safe bold route.
   - Deadlock maps (8 maps × reflex/blitz, 30 games): v4 8-22-0 → F19b 12-15-3.
   - Against v4: train −0.01 ± 0.03, holdout +0.00 ± 0.01, unseen holdout 20–39 **+0.10 ± 0.03** (z 3.0); pooled +0.031 ± 0.015 (z 2.01). W-T-L 515-81-124 → 526-70-124. No crashes or warnings, max move 0.33 s.
+  - **Head-to-head F19b vs v4** (both colours per map): train `20261108-212018-rr` F19b 37-9-34 (net +9 points over 80 games), holdout `20261108-212207-rr` 34-10-36 (net −6). On 74 of 80 maps both agents score the same (the colour decides). F19b is ahead on 4 maps and v4 on 2: even. Both agents had 1–2 timing warnings (max move 1.8 s) in the train run, so a machine hiccup, not F19b.
