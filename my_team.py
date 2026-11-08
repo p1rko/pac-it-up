@@ -82,6 +82,7 @@ class SmartAgent(CaptureAgent):
     SCARED_BANK_MARGIN = 3      # bank when the guards recover within home distance + this
     PREY_TRAP_RANGE = 8         # chase a scared ghost trapped in a pocket at most this far
     DEADLOCK_MOVES = 150        # tied with at most this many own moves left: break the standoff (F19)
+    BAIT = False                # in a deadlock, walk right up to the guards to pull them away (F19b)
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -455,6 +456,9 @@ class SmartAgent(CaptureAgent):
     def finish(self, game_state, action):
         """Overrides the behaviour's action with a search when a fight is on."""
         enemies = self.fight_opponents(game_state)
+        baiting, self.baiting = getattr(self, 'baiting', False), False
+        if baiting:
+            return action   # the search would pull the bait back to safety
         if enemies and self.time_left() > self.SEARCH_TIME:
             action = self.search(game_state, enemies, action)
         return action
@@ -646,6 +650,7 @@ class SmartAgent(CaptureAgent):
         capsules = self.get_capsules(game_state)
         ghosts = self.dangerous_ghosts(game_state, my_pos)
         deadlock = self.deadlocked(game_state)
+        seen_ghosts = list(ghosts)
         if deadlock:
             # Also count unseen guards at their believed cells, so stepping
             # across the border (and seeing them) doesn't flip the plan (F19).
@@ -740,9 +745,15 @@ class SmartAgent(CaptureAgent):
                 # (never next to a ghost) instead of sliding along the border.
                 # Same blocked cells on both sides of the border, or the route
                 # flips every time we step across.
-                bold_block = self.ghost_blocked(ghosts)
+                # Only guards we see block the way; believed ones (often a few
+                # cells off) just cost, or they can seal every corridor (F19b).
+                # The bait (Raider) walks right up to the guards: it carries
+                # nothing, so being eaten only costs time, and a guard that
+                # chases it leaves its corridor to the teammate.
+                bold_block = set(seen_ghosts) if self.BAIT else self.ghost_blocked(seen_ghosts)
                 step, _ = self.plan(game_state, [f for f in food if f not in bold_block], cost_fn, bold_block)
                 if step is not None:
+                    self.baiting = self.BAIT
                     return self.action_to(game_state, step)
             return self.reposition(game_state, ghosts, cost_fn, blocked)
 
@@ -974,6 +985,8 @@ class RaiderAgent(SmartAgent):
     and guards a lead at the end of the game.
     """
 
+    BAIT = True
+
     def decide(self, game_state):
         score = self.get_score(game_state)
         my_state = game_state.get_agent_state(self.index)
@@ -1061,6 +1074,7 @@ class FlexAgent(RaiderAgent):
     DANGER_HAUL = 4
     FREE_DEFENCE = 40       # defend turns allowed before catches are required
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
+    BAIT = False            # in a deadlock Flex is the runner, not the bait
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
@@ -1087,6 +1101,10 @@ class FlexAgent(RaiderAgent):
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+        if my_state.num_carrying == 0 and self.deadlocked(game_state):
+            # Tied late: the Raider pushes alone; Flex guards home so the push
+            # can't hand the opponent the winning dot (F19c).
+            return self.defend(game_state, others=self.mate_handling(game_state))
         if my_state.num_carrying == 0 and my_state.scared_timer == 0:
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
