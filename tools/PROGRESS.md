@@ -183,7 +183,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - F18b (cap 35): train −0.15 ± 0.09, holdout −0.08 ± 0.07. Banked −1.55 / −1.32, conceded only −0.11 / −0.90.
   - Reading: same lesson as F1/F2/F15: Flex's attack throughput is worth more than the opening raids it prevents. Opening line closed.
   - Saved as `strategies/experiments/f18_calm_opening.py` and `f18b_short_hold.py`; champion stays v3.
-- **Attempt 14: F19, deadlock breaker** (2026-11-08). Positive on all three pools; recommended as v4, awaiting the user.
+- **Attempt 14: F19, deadlock breaker** (2026-11-08). Positive on all three pools; **accepted as v4** by the user. Frozen as `strategies/history/v4.py`; new changes are A/B'd against v4.
   - Diagnosis: in a 0–0 game (`20261108-150153-ab-0396`) both teams repeat a 2-move cycle from move 168 to the end. Our Raider steps across, the guard comes into sight, nothing is safe, it steps back; at home the guard is out of sight again. Their attacker does the same, which pins Flex.
   - Change (only when the score is tied and ≤ `DEADLOCK_MOVES` (150) own moves are left): carry limit 1; unseen enemy guards count at their `most_likely` cell; when no food is safe, plan to the cheapest food (ghost-adjacent cells blocked on both sides of the border) instead of `reposition()`; Flex doesn't defend against an invader carrying nothing.
   - Against v3: train +0.10 ± 0.05 (z 1.93), holdout +0.03 ± 0.03, unseen holdout 20–39 +0.04 ± 0.03; pooled **+0.053 ± 0.021 (z 2.51)**. Ties 49 → 30 (train), 29 → 29, 25 → 22. No crashes or warnings, max move 0.32 s.
