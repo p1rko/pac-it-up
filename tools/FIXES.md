@@ -250,7 +250,7 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 - **What F17a + F17c show together:** the trap-room deaths are rarely prevented by the visible-ghost checks while carrying. The killers are usually 11+ steps away and often unseen when we go in. F17a only cut deaths through blanket avoidance (any time a ghost was visible), which cost food. The deaths come from **lingering inside** a dead end while a ghost walks up to the door, not from a bad entry decision.
 - **Revive idea (F17d, "watch the door"):** while inside a pocket or trap room, carrying food, leave via the door as soon as any enemy ghost (seen, or its believed position) can reach the door no later than we can. Ceiling stays about 0.7 food/game in total for all dead-end deaths.
 
-### F19c: only the Raider pushes: positive on all three pools, recommended as v5 (2026-11-08)
+### F19c: only the Raider pushes: positive on all three pools, **accepted as v5** (2026-11-08)
 - **Idea (the user's pick):** F19b pushed with both agents and conceded +0.20 food per game, turning some ties into losses. Keep Flex home instead.
 - **Change:** F19b, plus `FlexAgent.decide()` calls `defend()` whenever `deadlocked()` and it carries nothing. Branch `f19c-raider-push`.
 - **Deadlock maps** (8 maps × reflex/blitz, both colours): v4 8-22-0, F19b 12-15-3, **F19c 14-13-2**.

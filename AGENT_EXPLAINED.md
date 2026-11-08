@@ -108,6 +108,9 @@ Priority list, top to bottom:
    bank after one dot; count unseen guards at their believed cells (otherwise stepping across the
    border and seeing the guard flips the plan every move); and when no food is safe, take the
    cheapest route to food (never next to a ghost) instead of sliding along the border.
+   Since v5, believed guards only add cost (a wrong belief used to seal every corridor); only
+   seen guards block. The Raider walks right up to the guards (only their own cells blocked) and
+   skips the fight search while doing so, to bait them; Flex stays home (see Roles).
 
 ---
 
@@ -138,7 +141,9 @@ Same as the Raider, plus it defends when:
 * any invader carries **4+ dots** (always worth stopping).
 
 In a tied late game (v4) it ignores an invader that carries nothing: it can't score, and
-guarding it was what kept both teams frozen at 0–0.
+guarding it was what kept both teams frozen at 0–0. Since v5, in a tied late game it doesn't
+attack at all while carrying nothing: it guards home so the Raider's push can't hand the
+opponent the winning dot.
 
 "Paying off" is measured live. It gets 40 free defend turns, then 40 more per invader it
 actually catches. Against greedy attackers (like the baseline) it catches several per game and
@@ -190,6 +195,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | **v2** | F11: defender fight evaluation races the invader to exits, food and capsules | +0.09 ± 0.08 | +0.06 ± 0.06, unseen holdout +0.07 ± 0.06; pooled points z 1.86, **margin +0.78 (z 3.4), food conceded −1.11 (z −5.0)**; accepted by the user on margin |
 | **v3** | F16: scared-window discipline (sure-catch prey only; bank before the guards recover) | **+0.12 ± 0.05** | **+0.10 ± 0.05** (both pass the gate; pooled +0.11 ± 0.035, z 3.1; holdout margin +1.34, banked +0.94) |
 | **v4** | F19: deadlock breaker (tied with ≤ 150 moves left: bank after one dot, count unseen guards, bold route, Flex ignores empty-handed invaders) | +0.10 ± 0.05 | +0.03 ± 0.03, unseen holdout +0.04 ± 0.03; **pooled +0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49 → 30 on train; accepted by the user |
+| **v5** | F19c: Raider-only deadlock push (believed guards cost but don't block, Raider baits the guards, Flex guards home) | +0.05 ± 0.05 | +0.05 ± 0.04, unseen holdout +0.03 ± 0.03; **pooled +0.040 ± 0.023 (z 1.77)**, positive on all three pools; reflex +0.16 (z 2.3); W-T-L 517-81-122 → 532-65-123; conceded unchanged; accepted by the user |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step

@@ -193,7 +193,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Deadlock maps (8 maps × reflex/blitz, 30 games): v4 8-22-0 → F19b 12-15-3.
   - Against v4: train −0.01 ± 0.03, holdout +0.00 ± 0.01, unseen holdout 20–39 **+0.10 ± 0.03** (z 3.0); pooled +0.031 ± 0.015 (z 2.01). W-T-L 515-81-124 → 526-70-124. No crashes or warnings, max move 0.33 s.
   - **Head-to-head F19b vs v4** (both colours per map): train `20261108-212018-rr` F19b 37-9-34 (net +9 points over 80 games), holdout `20261108-212207-rr` 34-10-36 (net −6). On 74 of 80 maps both agents score the same (the colour decides). F19b is ahead on 4 maps and v4 on 2: even. Both agents had 1–2 timing warnings (max move 1.8 s) in the train run, so a machine hiccup, not F19b.
-- **Attempt 16: F19c, only the Raider pushes** (2026-11-08, the user's pick). Positive on all three pools; recommended as v5, waiting for the user.
+- **Attempt 16: F19c, only the Raider pushes** (2026-11-08, the user's pick). Positive on all three pools; **accepted as v5** by the user. Frozen as `strategies/history/v5.py`; new changes are A/B'd against v5.
   - Change: F19b, plus Flex guards home (`defend()`) whenever the game is deadlocked and it carries nothing.
   - Deadlock maps (8 maps × reflex/blitz): v4 8-22-0, F19b 12-15-3, F19c 14-13-2.
   - Against v4: train +0.05 ± 0.05, holdout +0.05 ± 0.04, unseen +0.03 ± 0.03; pooled **+0.040 ± 0.023 (z 1.77)**. W-T-L 517-81-122 → 532-65-123. Reflex +0.16 ± 0.07, search +0.09, tracking −0.03 ± 0.06. Conceded +0.01 (F19b: +0.20). No crashes or warnings, max move 0.31 s.
