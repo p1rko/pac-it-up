@@ -1,6 +1,7 @@
-# Pacman Agent
+# Pacman Capture the Flag 2026/27
+Team: Pac it up
 
-A template for coding a pacman agent.
+Our submission is `my_team.py` (team "Pack It Up"); how it works is in `AGENT_EXPLAINED.md`.
 
 ## Setting up the environment
 1. Copy the code from this framework to create your Pacman Agent.
