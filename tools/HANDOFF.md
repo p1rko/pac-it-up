@@ -8,7 +8,7 @@ Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FI
   - v1 = v0 + **F5a commit to banking**: once the carry limit sends an agent home, it keeps going home.
   - Holdout A/B against v0: **+0.24 ± 0.06** pts/game, better against every opponent.
 - **Branches:**
-  - `main`: old; does not have v1 yet. The tournament probably reads `main`, so merge before submitting.
+  - `main`: **v3**, fast-forwarded to `optimize-loop` and pushed (2026-11-08). The tournament probably reads `main`; fast-forward it again after each accepted version.
   - `optimize-loop`: at v3 (2026-11-08). **The base for new work; A/B against `strategies/history/v3.py`** (swap `v2=strategies/history/v2.py` for `v3=strategies/history/v3.py` in the commands below).
   - `f16-scared-window`: F16 = v3, merged into `optimize-loop`.
   - `f15-capsule-cover`, `f15b-flex-cover`: local, F15/F15b records (parked); records also merged into `optimize-loop`.
@@ -107,4 +107,4 @@ The league rule exists because the tournament is a round-robin ranked by total p
    - F4: both agents leave a long spawn corridor by the same path.
    - F8: both scared ghosts get eaten together.
    - F6 revive: harvest plus more capsules, and still eat scared ghosts far from their spawn.
-8. **Before submission:** merge v1 (or later) into `main`, then check timing on a slower machine; lower `SEARCH_TIME` first if needed.
+8. **Before submission:** `main` has v3. Check timing on a slower machine; lower `SEARCH_TIME` first if needed.
