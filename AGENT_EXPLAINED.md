@@ -102,6 +102,12 @@ Priority list, top to bottom:
    attackers spread out and overload a single defender.
 6. **Blocked by a guard:** slide along our border to the crossing furthest from every ghost
    (seen or believed) and try again there.
+7. **Tied late: break the deadlock** (v4). With the score tied and at most 150 own moves left
+   (`DEADLOCK_MOVES`), a single banked dot turns a tie (1 point) into a win (3), and dying only
+   costs time (the dead Pacman's food is dropped back on the map, not given to the enemy). So:
+   bank after one dot; count unseen guards at their believed cells (otherwise stepping across the
+   border and seeing the guard flips the plan every move); and when no food is safe, take the
+   cheapest route to food (never next to a ghost) instead of sliding along the border.
 
 ---
 
@@ -130,6 +136,9 @@ Priority list, top to bottom:
 Same as the Raider, plus it defends when:
 * an invader is within 8 steps of it on our side **and defending has been paying off**, or
 * any invader carries **4+ dots** (always worth stopping).
+
+In a tied late game (v4) it ignores an invader that carries nothing: it can't score, and
+guarding it was what kept both teams frozen at 0–0.
 
 "Paying off" is measured live. It gets 40 free defend turns, then 40 more per invader it
 actually catches. Against greedy attackers (like the baseline) it catches several per game and
@@ -180,6 +189,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | **v1** | commit to banking (no eat ↔ go-home flip at the carry-limit cliff) | −0.00 ± 0.05 | **+0.24 ± 0.06** (W-T-L 150-29-61 → 169-30-41, better against every opponent) |
 | **v2** | F11: defender fight evaluation races the invader to exits, food and capsules | +0.09 ± 0.08 | +0.06 ± 0.06, unseen holdout +0.07 ± 0.06; pooled points z 1.86, **margin +0.78 (z 3.4), food conceded −1.11 (z −5.0)**; accepted by the user on margin |
 | **v3** | F16: scared-window discipline (sure-catch prey only; bank before the guards recover) | **+0.12 ± 0.05** | **+0.10 ± 0.05** (both pass the gate; pooled +0.11 ± 0.035, z 3.1; holdout margin +1.34, banked +0.94) |
+| **v4** | F19: deadlock breaker (tied with ≤ 150 moves left: bank after one dot, count unseen guards, bold route, Flex ignores empty-handed invaders) | +0.10 ± 0.05 | +0.03 ± 0.03, unseen holdout +0.04 ± 0.03; **pooled +0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49 → 30 on train; accepted by the user |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
@@ -204,5 +214,5 @@ python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fas
 ## 8. Tunable knobs (top of `SmartAgent` / `FlexAgent`)
 `CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
 `DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`, `SCARED_BANK_MARGIN`,
-`PREY_TRAP_RANGE`.
+`PREY_TRAP_RANGE`, `DEADLOCK_MOVES`.
 If the tournament machine turns out slower, lower `SEARCH_TIME` first.

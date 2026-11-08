@@ -164,3 +164,26 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Against v2: train **+0.12 ± 0.05**, holdout **+0.10 ± 0.05**, both pass the gate; pooled +0.11 ± 0.035 (z 3.1). Holdout margin +1.34, banked +0.94. No crashes or warnings.
   - Oscillating moves near scared ghosts 7.8 → 1.7 per window; food banked inside a window 1.6 → 5.6.
   - Frozen as `strategies/history/v3.py`; new changes are A/B'd against v3.
+- **Attempt 10: F17a, trap rooms as dead ends (the user's idea)** (2026-11-08). Neutral, parked.
+  - Against v3: train +0.03 ± 0.03, holdout −0.05 ± 0.03; pooled **−0.01 ± 0.02**.
+  - Deaths 147 → 122 and trap-room deaths 29 → 18 (`tools/deadend_probe.py`); food lost −0.19/game, but banked −0.30.
+  - Saved as `strategies/experiments/f17a_trap_rooms.py`; champion stays v3. Next idea: scale dead-end caution by the food carried.
+- **Attempt 11: F17c, trap rooms only when carrying ≥ 3** (2026-11-08). Neutral, parked.
+  - Against v3: train +0.01 ± 0.01, holdout −0.03 ± 0.03; pooled **−0.01 ± 0.02**. The banking cost is gone, but trap-room deaths only fell 30 → 26.
+  - Reading: dead-end deaths come from lingering inside while a far or unseen ghost reaches the door, not from the entry check. Next idea: F17d, "watch the door".
+  - Saved as `strategies/experiments/f17c_careful_carry.py`; champion stays v3.
+- **Attempt 12: F17d, watch the door** (2026-11-08). Works as designed, but points are flat; parked.
+  - Against v3: train −0.02 ± 0.04, holdout +0.01 ± 0.05; pooled **−0.00 ± 0.03**. Banked unchanged.
+  - Deaths 148 → 118, food lost 1.04 → 0.72 per game, pocket food lost halved.
+  - Why no points: a dead Pacman's food is dropped back on the map (`dump_food_from_death`), not given to the enemy. A death only costs time, and v3 dies 0.3 times per game. The dead-end line (F17a–d) is closed.
+  - Saved as `strategies/experiments/f17d_watch_door.py`; champion stays v3.
+- **Attempt 13: F18 / F18b, calm opening** (2026-11-08). Rejected.
+  - Change: Flex guards home (`defend()`) from the start until the first enemy raid is over (an invader appeared and is gone), capped at `OPEN_HOLD` own moves.
+  - F18 (cap 75) against v3: train −0.15 ± 0.10, holdout −0.07 ± 0.09. Conceded −0.48 / −1.89, but banked −2.46 / −1.87.
+  - F18b (cap 35): train −0.15 ± 0.09, holdout −0.08 ± 0.07. Banked −1.55 / −1.32, conceded only −0.11 / −0.90.
+  - Reading: same lesson as F1/F2/F15: Flex's attack throughput is worth more than the opening raids it prevents. Opening line closed.
+  - Saved as `strategies/experiments/f18_calm_opening.py` and `f18b_short_hold.py`; champion stays v3.
+- **Attempt 14: F19, deadlock breaker** (2026-11-08). Positive on all three pools; **accepted as v4** by the user. Frozen as `strategies/history/v4.py`; new changes are A/B'd against v4.
+  - Diagnosis: in a 0–0 game (`20261108-150153-ab-0396`) both teams repeat a 2-move cycle from move 168 to the end. Our Raider steps across, the guard comes into sight, nothing is safe, it steps back; at home the guard is out of sight again. Their attacker does the same, which pins Flex.
+  - Change (only when the score is tied and ≤ `DEADLOCK_MOVES` (150) own moves are left): carry limit 1; unseen enemy guards count at their `most_likely` cell; when no food is safe, plan to the cheapest food (ghost-adjacent cells blocked on both sides of the border) instead of `reposition()`; Flex doesn't defend against an invader carrying nothing.
+  - Against v3: train +0.10 ± 0.05 (z 1.93), holdout +0.03 ± 0.03, unseen holdout 20–39 +0.04 ± 0.03; pooled **+0.053 ± 0.021 (z 2.51)**. Ties 49 → 30 (train), 29 → 29, 25 → 22. No crashes or warnings, max move 0.32 s.

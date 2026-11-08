@@ -3,13 +3,13 @@
 Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
 
 ## State in one glance
-- **Resume here (2026-11-08):** champion is **v3** = F16, scared-window discipline (`strategies/history/v3.py`, on `optimize-loop`). It passed the gate on both train (+0.12) and holdout (+0.10) against v2. F15 and F15b (capsule cover) were parked at ±0.00. The user has further suggestions (unrelated to the scared window) to discuss next. Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
-- **Champion: v3** = v2 + F16, `strategies/history/v3.py`, on `optimize-loop`. Before that: **v2** = F11, `strategies/history/v2.py`. Before that: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
+- **Resume here (2026-11-08, later):** champion is **v4** = v3 + F19, the deadlock breaker (`strategies/history/v4.py`, on `optimize-loop` and `main`). Pooled +0.053 ± 0.021 (z 2.51) over three pools against v3; accepted by the user. F17a–d (dead ends) and F18/F18b (calm opening) are closed. Earlier: champion was **v3** = F16, scared-window discipline (`strategies/history/v3.py`, on `optimize-loop`). It passed the gate on both train (+0.12) and holdout (+0.10) against v2. F15 and F15b (capsule cover) were parked at ±0.00. F17a (the user's dead-end idea: trap rooms) was parked at −0.01: deaths −17%, but banked −0.30. Its record is on the local branch `f17-trap-rooms`. Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
+- **Champion: v4** = v3 + F19, `strategies/history/v4.py`, on `optimize-loop`. Before that: **v3** = v2 + F16, `strategies/history/v3.py`. Before that: **v2** = F11, `strategies/history/v2.py`. Before that: **v1** = `my_team@b41127c`, frozen as `strategies/history/v1.py`. It equals `my_team.py` on `optimize-loop`.
   - v1 = v0 + **F5a commit to banking**: once the carry limit sends an agent home, it keeps going home.
   - Holdout A/B against v0: **+0.24 ± 0.06** pts/game, better against every opponent.
 - **Branches:**
-  - `main`: **v3**, fast-forwarded to `optimize-loop` and pushed (2026-11-08). The tournament probably reads `main`; fast-forward it again after each accepted version.
-  - `optimize-loop`: at v3 (2026-11-08). **The base for new work; A/B against `strategies/history/v3.py`** (swap `v2=strategies/history/v2.py` for `v3=strategies/history/v3.py` in the commands below).
+  - `main`: **v4** (2026-11-08); previously v3, fast-forwarded to `optimize-loop` and pushed (2026-11-08). The tournament probably reads `main`; fast-forward it again after each accepted version.
+  - `optimize-loop`: at v4 (2026-11-08). **The base for new work; A/B against `strategies/history/v4.py`** (use `v4=strategies/history/v4.py` as the old agent in the commands below).
   - `f16-scared-window`: F16 = v3, merged into `optimize-loop`.
   - `f15-capsule-cover`, `f15b-flex-cover`: local, F15/F15b records (parked); records also merged into `optimize-loop`.
   - `f9-home-hunt`: local, not pushed, at `3844ea5` + this file. Holds the F9 record, `tools/raid_probe.py` and `diagnose.py leads`. `my_team.py` there is still v1. Merge it into `optimize-loop` with the next accepted version, or now if the tools are wanted there.
@@ -88,6 +88,12 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F11b | F11, race only invaders carrying ≥ 1 | train +0.07, holdout +0.04, unseen +0.04; pooled +0.051 ± 0.035 (z 1.47); banking cost unchanged | `experiments/f11b_race_when_carrying.py` |
 | **v2** | **= F11, accepted by the user on margin** | | `history/v2.py` |
 | **F16 = v3** | **scared-window discipline: sure-catch prey only; bank before the guards recover (user's idea)** | **train +0.12, holdout +0.10, both pass; pooled +0.11 ± 0.035 (z 3.1); oscillation 7.8 → 1.7/window, banked in window 1.6 → 5.6** | `history/v3.py` |
+| F17a | trap rooms (one-door areas with loops) count as dead ends (user's idea) | train +0.03, holdout −0.05; pooled −0.01 ± 0.02, parked; deaths −17%, food lost −0.19, banked −0.30 | `experiments/f17a_trap_rooms.py`, branch `f17-trap-rooms` |
+| F17c | F17a for a Pacman only when carrying ≥ 3 (defenders always) | train +0.01, holdout −0.03; pooled −0.01 ± 0.02, parked; trap-room deaths only 30 → 26 | `experiments/f17c_careful_carry.py`, branch `f17c-careful-carry` |
+| F17d | watch the door: leave a dead end when a seen or believed guard can reach its door first | train −0.02, holdout +0.01; pooled −0.00 ± 0.03, parked; deaths −20%, food lost −31%, banked unchanged. A dead Pacman's food is dropped back on the map, so deaths only cost time; dead-end line closed | `experiments/f17d_watch_door.py`, branch `f17d-watch-door` |
+| **F19 = v4** | deadlock breaker: tied with ≤ 150 own moves left → bank after 1 dot, count unseen guards at their believed cells, bold route when no food is safe, Flex ignores empty-handed invaders | train +0.10 ± 0.05, holdout +0.03 ± 0.03, unseen +0.04 ± 0.03; pooled **+0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49→30 on train; no opponent below −1 SE. **Accepted as v4** | `experiments/f19_deadlock_breaker.py`, branch `f19-deadlock` |
+| F18 | calm opening: Flex guards home until the first raid is over (≤ 75 own moves) | train −0.15, holdout −0.07; rejected; conceded −0.5/−1.9 but banked −2.5/−1.9 | `experiments/f18_calm_opening.py`, branch `f18-calm-opening` |
+| F18b | F18 with a 35-move cap | train −0.15, holdout −0.08; rejected; banked −1.6/−1.3, conceded only −0.1/−0.9. Opening line closed: Flex's attack is worth more than the raids it blocks | `experiments/f18b_short_hold.py`, branch `f18-calm-opening` |
 | F14 | capsule guard (race to a capsule an invader is near) | train +0.10, holdout −0.00, unseen +0.05; pooled +0.05 ± 0.031 (z 1.6), parked; blitz −0.14 | `experiments/f14_capsule_guard.py` |
 | F13 | analysis: where v2 concedes | big raids 1.1/game = 80% of conceded; half capsule; 84% first half | `tools/raid_fate_probe.py` |
 | F15 | proactive capsule cover by home ghosts (never recalls attackers) | train +0.05, holdout −0.05; pooled ±0.00, parked; conceded −0.88, capsules eaten −8%, big raids −10%, but banked −0.60 | `experiments/f15_capsule_cover.py`, branch `f15-capsule-cover` |
@@ -95,7 +101,8 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
-1. **The user's further suggestions** (from watching games; not yet discussed).
+1. **Deadlock revive (F19b):** remaining deadlocks are mostly structural: a guard parked on the only corridor (e.g. RANDOM797927). A revive idea: both agents attack from different crossings to pull the guard.
+(Dead ends, F17a–d: closed. Deaths only cost time, because the food is dropped back on the map. Calmer opening, F18/F18b: closed, holding Flex home costs more banked food than it saves.)
 2. F16 tuning: `SCARED_BANK_MARGIN` 2 or 4; scared ghosts eaten fell 0.66 → 0.52 per window, so test `PREY_TRAP_RANGE` larger or a sure-catch check at distance 2 without a pocket (e.g. a ghost in a corridor with no escape).
 3. F15/F15b revive: gate the capsule cover by map shape or by opponent (consistent Dario gain).
 2. **Calmer opening** (F13): 84% of big raids start in the first half, often as we cross at the same moment. Hold Flex at the border until the first invader shows, or turn back for an invader seen near the border. Can be stacked on F14.
@@ -107,4 +114,4 @@ The league rule exists because the tournament is a round-robin ranked by total p
    - F4: both agents leave a long spawn corridor by the same path.
    - F8: both scared ghosts get eaten together.
    - F6 revive: harvest plus more capsules, and still eat scared ghosts far from their spawn.
-8. **Before submission:** `main` has v3. Check timing on a slower machine; lower `SEARCH_TIME` first if needed.
+8. **Before submission:** `main` has v4. Check timing on a slower machine; lower `SEARCH_TIME` first if needed.

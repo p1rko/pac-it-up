@@ -81,6 +81,7 @@ class SmartAgent(CaptureAgent):
     # Scared window (F16): use it, don't get stuck in it.
     SCARED_BANK_MARGIN = 3      # bank when the guards recover within home distance + this
     PREY_TRAP_RANGE = 8         # chase a scared ghost trapped in a pocket at most this far
+    DEADLOCK_MOVES = 150        # tied with at most this many own moves left: break the standoff (F19)
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -308,6 +309,14 @@ class SmartAgent(CaptureAgent):
     def moves_left(self, game_state):
         """Moves this agent still gets to make."""
         return game_state.data.timeleft // 4
+
+    def deadlocked(self, game_state):
+        """
+        Tied in the second half. A single banked dot turns the tie (1 point)
+        into a win (3), and a death only costs time (the food is dropped back
+        on the map), so the usual caution no longer pays.
+        """
+        return self.get_score(game_state) == 0 and self.moves_left(game_state) <= self.DEADLOCK_MOVES
 
     def home_distance(self, pos):
         d = self.home_dist_cache.get(pos)
@@ -636,6 +645,16 @@ class SmartAgent(CaptureAgent):
         food = self.get_food(game_state).as_list()
         capsules = self.get_capsules(game_state)
         ghosts = self.dangerous_ghosts(game_state, my_pos)
+        deadlock = self.deadlocked(game_state)
+        if deadlock:
+            # Also count unseen guards at their believed cells, so stepping
+            # across the border (and seeing them) doesn't flip the plan (F19).
+            for e in self.get_opponents(game_state):
+                st = game_state.get_agent_state(e)
+                if st.get_position() is None and not st.is_pacman and st.scared_timer == 0:
+                    g = self.most_likely(e)
+                    if not self.is_home(g):
+                        ghosts.append(g)
         home_dist = self.home_distance(my_pos)
         cost_fn = self.ghost_cost_fn(ghosts)
         blocked = self.ghost_blocked(ghosts) if my_state.is_pacman else set()
@@ -683,6 +702,8 @@ class SmartAgent(CaptureAgent):
                 carry_limit = 100
             elif min_scared:
                 carry_limit += 3
+            if deadlock and carry_limit < 100:
+                carry_limit = 1   # one dot wins a tied game: bank it
         # Once we decide to bank, stick to it: the limit changes as we move
         # (e.g. at 15 steps from home), which used to flip us back and forth.
         if carry_limit >= 100:
@@ -714,6 +735,15 @@ class SmartAgent(CaptureAgent):
         if not targets:
             if carrying > 0:
                 return self.go_home(game_state, cost_fn, blocked)
+            if deadlock:
+                # Standoff in a tied game: go for the cheapest food anyway
+                # (never next to a ghost) instead of sliding along the border.
+                # Same blocked cells on both sides of the border, or the route
+                # flips every time we step across.
+                bold_block = self.ghost_blocked(ghosts)
+                step, _ = self.plan(game_state, [f for f in food if f not in bold_block], cost_fn, bold_block)
+                if step is not None:
+                    return self.action_to(game_state, step)
             return self.reposition(game_state, ghosts, cost_fn, blocked)
 
         # Prefer food close to us, far from where the guards probably are,
@@ -1061,6 +1091,8 @@ class FlexAgent(RaiderAgent):
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
                 close = self.dist(my_pos, p) <= self.DEFEND_RADIUS and not my_state.is_pacman
+                if close and carrying == 0 and self.deadlocked(game_state):
+                    close = False   # an empty-handed invader can't score: don't let it pin us (F19)
                 if (close and worth_it) or carrying >= self.DANGER_HAUL:
                     self.defend_turns += 1
                     return self.defend(game_state, others=self.mate_handling(game_state))
