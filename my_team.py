@@ -1031,7 +1031,7 @@ class FlexAgent(RaiderAgent):
     DANGER_HAUL = 4
     FREE_DEFENCE = 40       # defend turns allowed before catches are required
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
-    OPEN_HOLD = 75          # opening: guard home until the first raid is over, at most this many own moves
+    OPEN_HOLD = 35          # opening: guard home until the first raid is over, at most this many own moves
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
