@@ -250,6 +250,20 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 - **What F17a + F17c show together:** the trap-room deaths are rarely prevented by the visible-ghost checks while carrying. The killers are usually 11+ steps away and often unseen when we go in. F17a only cut deaths through blanket avoidance (any time a ghost was visible), which cost food. The deaths come from **lingering inside** a dead end while a ghost walks up to the door, not from a bad entry decision.
 - **Revive idea (F17d, "watch the door"):** while inside a pocket or trap room, carrying food, leave via the door as soon as any enemy ghost (seen, or its believed position) can reach the door no later than we can. Ceiling stays about 0.7 food/game in total for all dead-end deaths.
 
+### F19b: deadlock push with both agents: borderline positive, waiting for the user (2026-11-08)
+- **Evidence:** in v4's remaining 0–0 games our agents often never cross. Replay of RANDOM841236 vs reflex: the bold plan blocked the cells around the seen guard (17,10) and around the *believed* second guard at (21,8) (really at (17,11)). Together they sealed every corridor, so the plan found no route and `reposition()` flipped with the safe-food check.
+- **Change** (only in `deadlocked()` games): believed guards add cost but no longer block. The Raider (`BAIT = True`) plans with only the guards' own cells blocked and skips the fight search for that move: it carries nothing, so being eaten only costs time, and a guard that chases it leaves its corridor. Flex (`BAIT = False`) keeps the safe bold route. Branch `f19b-deadlock-push` (`f54afe0`).
+- **Deadlock maps** (8 maps × reflex/blitz, both colours): v4 8-22-0, F19b 12-15-3.
+- **A/B against v4** (0 crashes or warnings, max move 0.33 s):
+
+  | | train `20261108-174930-ab` | holdout `-180922-ab` | unseen holdout 20–39 `-182712-ab` |
+  |---|---|---|---|
+  | Δ pts/game | −0.01 ± 0.03 | +0.00 ± 0.01 | **+0.10 ± 0.03** |
+  | W-T-L v4 → F19b | 165-30-45 → 163-33-44 | 180-29-31 → 182-24-34 | 170-22-48 → 181-13-46 |
+  | worst opponent | tracking −0.10 ± 0.07 | search −0.03 | — |
+
+  - **Pooled over 720 pairs: +0.031 ± 0.015, z 2.01.** Ties 81 → 70, losses unchanged at 124.
+
 ### F19: deadlock breaker: positive on three pools, **accepted as v4** (2026-11-08)
 - **Evidence:** v3 ties 78 of 480 games, 58 of them banking nothing, mostly `stalled`. Replay `20261108-150153-ab-0396` (RANDOM797927 vs reflex): from move 168 to 1200 every agent repeats a 2-move cycle. Our Raider steps to (17,11), the guard at (17,6) comes into sight, no food is safe, it steps back to (16,11), where the guard is out of sight and food looks safe again. Their attacker mirrors it at (16,6) and keeps Flex home.
 - **Change** (`deadlocked()`: score tied and ≤ `DEADLOCK_MOVES` (150) own moves left): carry limit 1 (one banked dot turns a tie into a win); unseen non-scared enemy guards count at their `most_likely` cell in `attack()`; when no food is safe and we carry nothing, plan to the cheapest food with ghost-adjacent cells blocked on both sides of the border, instead of `reposition()`; Flex doesn't defend against an invader carrying nothing. Branch `f19-deadlock` (`064781e`).
