@@ -91,6 +91,7 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F17a | trap rooms (one-door areas with loops) count as dead ends (user's idea) | train +0.03, holdout −0.05; pooled −0.01 ± 0.02, parked; deaths −17%, food lost −0.19, banked −0.30 | `experiments/f17a_trap_rooms.py`, branch `f17-trap-rooms` |
 | F17c | F17a for a Pacman only when carrying ≥ 3 (defenders always) | train +0.01, holdout −0.03; pooled −0.01 ± 0.02, parked; trap-room deaths only 30 → 26 | `experiments/f17c_careful_carry.py`, branch `f17c-careful-carry` |
 | F17d | watch the door: leave a dead end when a seen or believed guard can reach its door first | train −0.02, holdout +0.01; pooled −0.00 ± 0.03, parked; deaths −20%, food lost −31%, banked unchanged. A dead Pacman's food is dropped back on the map, so deaths only cost time; dead-end line closed | `experiments/f17d_watch_door.py`, branch `f17d-watch-door` |
+| F19 | deadlock breaker: tied with ≤ 150 own moves left → bank after 1 dot, count unseen guards at their believed cells, bold route when no food is safe, Flex ignores empty-handed invaders | train +0.10 ± 0.05, holdout +0.03 ± 0.03, unseen +0.04 ± 0.03; pooled **+0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49→30 on train; no opponent below −1 SE. **Recommended as v4, awaiting the user** | `experiments/f19_deadlock_breaker.py`, branch `f19-deadlock` |
 | F18 | calm opening: Flex guards home until the first raid is over (≤ 75 own moves) | train −0.15, holdout −0.07; rejected; conceded −0.5/−1.9 but banked −2.5/−1.9 | `experiments/f18_calm_opening.py`, branch `f18-calm-opening` |
 | F18b | F18 with a 35-move cap | train −0.15, holdout −0.08; rejected; banked −1.6/−1.3, conceded only −0.1/−0.9. Opening line closed: Flex's attack is worth more than the raids it blocks | `experiments/f18b_short_hold.py`, branch `f18-calm-opening` |
 | F14 | capsule guard (race to a capsule an invader is near) | train +0.10, holdout −0.00, unseen +0.05; pooled +0.05 ± 0.031 (z 1.6), parked; blitz −0.14 | `experiments/f14_capsule_guard.py` |
@@ -100,7 +101,7 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
-1. **0–0 deadlocks (F19, in progress):** force one food through late in a 0–0 game. v3 ties 78 of 480; 58 of those bank nothing, mostly 'stalled' (100+ idle attack turns).
+1. **F19 decision:** accept as v4 (pooled z 2.51 over three pools; no single pool passes the strict gate). Remaining deadlocks are mostly structural: a guard parked on the only corridor (e.g. RANDOM797927). A revive idea: both agents attack from different crossings to pull the guard.
 (Dead ends, F17a–d: closed. Deaths only cost time, because the food is dropped back on the map. Calmer opening, F18/F18b: closed, holding Flex home costs more banked food than it saves.)
 2. F16 tuning: `SCARED_BANK_MARGIN` 2 or 4; scared ghosts eaten fell 0.66 → 0.52 per window, so test `PREY_TRAP_RANGE` larger or a sure-catch check at distance 2 without a pocket (e.g. a ghost in a corridor with no escape).
 3. F15/F15b revive: gate the capsule cover by map shape or by opponent (consistent Dario gain).
