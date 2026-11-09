@@ -223,6 +223,21 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F21 / F21b: ambush a loaded invader at the end of the enemy's capsule window: parked without a full A/B (2026-11-09)
+- **Evidence** (v6, 720 A/B games + a 72-game live probe): ~10 free bites per game (no ghost of ours within 6); **44% while our ghosts are scared** after the enemy ate our capsule (41% in lost/tied games). The rest is spread thin (no other situation above ~5%). Replaying the enemy's windows in 480 v6 games: 322 windows end with an invader still loaded in our half (1,550 food, 3.2/game); they bank 1,026 of it, we catch 176. At the window end the invader is a median 13.5 steps from its border and our nearest ghost is usually nowhere (within 6 in only 36 of 322).
+- **F21:** Flex (carrying ≤ `AMBUSH_MAX_CARRY` 1) runs `defend()` while scared once an invader in our half carries ≥ `AMBUSH_CARRY` (3) and our scared time ≤ its distance + `AMBUSH_LEAD` (6); latched while that invader stays loaded in our half. The trigger works (ambushing at 21 of 27 window ends with a loaded invader, often 2–5 steps away), but `defend()`'s scared ring (distance 2, any side) **herds the invader home**: invaders that used to sit on their haul until the game ended now banked it.
+- **F21b:** same trigger, but while scared Flex stands on the invader's shortest path to its nearest crossing, ≥ 2 cells away.
+- **Gauntlet, 6 train maps × 6 opponents × 2 colours, 72 games each** (`20261109-205803-gauntlet` … `-211733-gauntlet`):
+
+  | | W-T-L | pts/game | banked after window | recovered by catches |
+  |---|---|---|---|---|
+  | v6 | 61-4-7 | 2.60 | 115 | 23 |
+  | F21 (lead 6 / 4 / 10, carry 5) | 59-6-7 … 60-6-6 | 2.54–2.58 | 143–151 | 18–35 |
+  | F21b | 59-6-7 | 2.54 | 130 | 38 |
+
+- **Reading:** a ghost can't reliably catch a Pacman that runs unless it cuts off its only way home; F21b guards only the nearest crossing and invaders take others. The ceiling is ~0.3 food per game, and the herding side effect eats most of it. Parked by the user's choice before a full A/B. Code: branch `f21-window-ambush` (`27c55c5`), `strategies/experiments/f21_window_ambush.py`, `f21b_guard_way_out.py`.
+- **To revive:** guard the crossing the invader will really use (belief heading, or the crossing nearest to it and farthest from our agents); or only ambush invaders in a pocket/room whose door we can reach first (like `catchable()` for scared ghosts).
+
 ### F20a: trapped haul, Flex gives up a pinned haul: neutral, parked (2026-11-09)
 - **Evidence:** v5 loses all 5 games on RANDOM1890298 against tracking/search/reflex by −28. Both our Pacmen enter one small enemy room with two adjacent exits (x 20–25, y 1–3 as red), one guard parks between the exits at (22,3)/(23,3), and both sit for ~700 turns carrying 12 food while the enemy raider eats ours unopposed. Stall probe on that map: 91% of stalled moves are `go_home | go_home>search` (Raider 48%, Flex 43%). `deadlocked()` never fires (score ≠ 0), and Flex only defends with 0 food. Same pattern on RANDOM1390133 and RANDOM66173; 20 v5 non-wins with idle_attack > 200 across 11 maps.
 - **Change:** `track_trapped()`: Pacman with food, `go_home` for `TRAP_TURNS` (20) own moves within `TRAP_CELLS` (3) cells → `self.trapped`, shared as `TEAM_INFO['trapped']`. `FlexAgent.give_up_haul()`: a trapped Flex walks into the guard (fight search off) when an enemy is attacking or we are not ahead, latched until it dies or the guard leaves. Branch `f20-trapped-haul` (`0d9b31a`).
@@ -630,6 +645,13 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 - **Idea:** give each agent its own crossing (upper and lower half of the border), and keep Flex home when the trip to the border is long.
 
 ## Fixed
+
+### F22: capsule push to win (the user's idea): **accepted as v7** (2026-11-09)
+- **Weakness:** v6 ends 147 of 720 ties/losses with an enemy capsule unused; one scared window (40 moves) would often have covered the deficit.
+- **Change:** `capsule_push()` (team state `push`): per enemy capsule, `sweep_value` = dots two agents could eat and bank within `SWEEP_BUDGET` (38) moves (one from the capsule, one from the nearest crossing; greedy, cached). Fire when the sweep alone leaves ≤ 2 dots (food-limit win), or when ≤ `PUSH_MOVES` (120) own moves are left, we're at most `PUSH_LEAD` (0) ahead and score + carried + sweep ≥ 1. Both agents head for the nearest capsule; once eaten, F16's unlimited scared-window attack sweeps and banks; the push ends with the window. Capsules are never held back (the user's constraint): escapes and normal play still eat them.
+- **Result vs v6 (720 pairs, three pools):** pooled **+0.115 ± 0.031 (z 3.8)**; unseen +0.23 ± 0.06 passes alone. Ties/losses → wins: 534-64-122 → 566-51-103. Banked +0.78, conceded +0.27 (home is empty during a push). Blitz ±0.01 (two attackers punish the empty home).
+- **Follow-ups:** keep Flex home during a push when two invaders are in our half (blitz); abort a push that makes no progress towards a guarded capsule.
+
 
 ### F16: scared-window discipline (the user's observations): **accepted as v3** (2026-11-08)
 - **What the user saw:** (1) an attacker next to a scared ghost in a 2×2 block shuffles back and forth until the timer ends; (2) an attacker eats and chases during the window, then the guards recover while it's far from home with food.
