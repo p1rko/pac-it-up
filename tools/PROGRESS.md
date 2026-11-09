@@ -216,3 +216,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - RANDOM1890298: three of five −28 losses became wins. idle_attack −0.3 / −4.6 / −4.0 per game.
   - F20d's dario dip didn't reproduce: same games, same filter activity, v5's results. Treat single-game flips as noise.
   - Saved as `strategies/experiments/f20e_guarded_rooms.py`.
+- **Attempt 20: F21 / F21b, ambush at the end of the enemy's capsule window** (2026-11-09). Parked by the user before a full A/B. Champion stays v6.
+  - Diagnosis: 44% of free bites happen while our ghosts are scared; at the window end invaders still carry 3.2 food/game in our half and bank 2.1 of it, with no ghost of ours near.
+  - F21 (Flex runs `defend()` near the window end) herded invaders home: banked after the window 115 → 147 on 72 gauntlet games. F21b (stand on the invader's way out) recovered more (23 → 38) but still conceded more after the window (130). Points 2.60 → 2.54 (2 wins → ties, noise-level).
+  - Saved as `strategies/experiments/f21_window_ambush.py` and `f21b_guard_way_out.py`; branch `f21-window-ambush`.
