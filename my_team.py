@@ -86,6 +86,8 @@ class SmartAgent(CaptureAgent):
     # Trapped haul (F20): going home as Pacman with food, but pinned by a guard.
     TRAP_TURNS = 20             # own moves in go_home ...
     TRAP_CELLS = 3              # ... covering at most this many cells = trapped
+    ROOM_MAX = 40               # biggest area one guard can seal that counts as a trap room (F20d)
+    AVOID_MATE_ROOM = False     # skip food in the teammate's trap room (F20d, Flex only)
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -118,6 +120,7 @@ class SmartAgent(CaptureAgent):
         self.enemy_border = [(enemy_x, y) for (_, y) in self.home_border]
 
         self._compute_dead_ends()
+        self._compute_trap_rooms()
         self.home_dist_cache = {}
         self.banking = False    # decided to bank: keep going home instead of re-deciding
         self.went_home = False  # go_home ran this turn (F20)
@@ -176,6 +179,39 @@ class SmartAgent(CaptureAgent):
                     self.depth[n] = self.depth[c] + 1
                     self.entrance[n] = self.entrance[c]
                     frontier.append(n)
+
+    def _compute_trap_rooms(self):
+        """
+        Trap rooms (F20d): enemy-side areas a single guard can seal. For every
+        enemy-side cell a guard could stand on, block it and its neighbours
+        (cells we never step into) and see which enemy-side cells can no
+        longer reach our border. Rooms bigger than ROOM_MAX are half the map
+        behind a choke, not a room. self.rooms[cell] = ids of rooms holding it.
+        """
+        self.rooms = {}
+        border = set(self.home_border)
+        room_id = {}
+        for g in self.enemy_side:
+            block = {g, *self.neighbors[g]}
+            seen = {c for c in border if c not in block}
+            frontier = deque(seen)
+            while frontier:
+                c = frontier.popleft()
+                for n in self.neighbors[c]:
+                    if n not in seen and n not in block:
+                        seen.add(n)
+                        frontier.append(n)
+            sealed = frozenset(c for c in self.enemy_side if c not in seen and c not in block)
+            if not sealed or len(sealed) > self.ROOM_MAX:
+                continue
+            rid = room_id.setdefault(sealed, len(room_id))
+            for c in sealed:
+                self.rooms.setdefault(c, set()).add(rid)
+
+    def same_room(self, a, b):
+        """a and b lie in one trap room (F20d)."""
+        ra, rb = self.rooms.get(a), self.rooms.get(b)
+        return bool(ra and rb and not ra.isdisjoint(rb))
 
     # ------------------------------------------------------------------ #
     # Turn wrapper: timing and crash protection                            #
@@ -761,6 +797,14 @@ class SmartAgent(CaptureAgent):
         mate_target = self.mate_target()
         if mate_target is not None and len(targets) > 3:
             targets = [f for f in targets if self.dist(f, mate_target) > 4] or targets
+        if self.AVOID_MATE_ROOM:
+            # F20d: one guard can seal a trap room; never be in it together.
+            mate = [i for i in self.get_team(game_state) if i != self.index][0]
+            spots = [p for p in (game_state.get_agent_position(mate), mate_target) if p is not None]
+            spots = [(int(p[0]), int(p[1])) for p in spots if p in self.rooms]
+            if spots and not any(self.same_room(my_pos, p) for p in spots):
+                targets = [f for f in targets
+                           if not any(self.same_room(f, p) for p in spots)] or targets
         if not targets:
             if carrying > 0:
                 return self.go_home(game_state, cost_fn, blocked)
@@ -1100,6 +1144,7 @@ class FlexAgent(RaiderAgent):
     FREE_DEFENCE = 40       # defend turns allowed before catches are required
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
     BAIT = False            # in a deadlock Flex is the runner, not the bait
+    AVOID_MATE_ROOM = True  # don't follow the Raider into a trap room (F20d)
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
