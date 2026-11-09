@@ -272,6 +272,8 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
   - **Pooled over 720 pairs: +0.007 ± 0.016 (z 0.4).** Dario 0.00 / −0.07 / +0.07. Banked +0.03 / +0.23 / −0.01; unopposed food −0.13 per game on every pool.
   - RANDOM1890298 (holdout): v5's five −28 losses → +1, +4, +11 (wins), −10, −7.
+- **By opponent** (pooled, 120 pairs each): tracking +0.067 ± 0.053, blitz +0.025, search/dario/turtle 0.00, reflex −0.042 ± 0.051. Margin up and conceded down against all six.
+- **The 3 reflex games F20e lost** (first different move between the F20e and v5 replays): RANDOM1913344 diverges on a Raider move (same code as v5: search timing); mediumCapture diverges on a fight-search move while Flex defends, and a rerun gives +21 instead of −1 (timing). Only RANDOM123647 (`20261109-193757-ab-0149`, blue) starts at the room filter (Flex move 97, turn 386); 90 turns later both our agents die on consecutive turns (477/478) to the same guard, in pockets 11–12 from home, and the game ends −8 instead of +4. Possible gap: the filter only checks rooms holding the Raider, so Flex can still pick a neighbouring room that the same guard closes.
 - **Reading:** fixes the targeted failure and costs nothing measurable, but the trap is ~1–2% of games, so the gain (~+0.01–0.03) is below what 720 pairs can show. Saved as `strategies/experiments/f20e_guarded_rooms.py`.
 
 ### F17a: trap rooms as dead ends (the user's "remember dead ends" idea): fewer deaths, less banking; neutral, parked (2026-11-08)
