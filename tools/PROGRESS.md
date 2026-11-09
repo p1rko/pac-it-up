@@ -204,3 +204,9 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Against v5: train +0.03 ± 0.02, holdout −0.02 ± 0.03. Holdout idle_attack 42.6 → 35.4; margins up; points flat.
   - F20b draft (Flex defends while the Raider is pinned or trapped) was worse than F20a on the stall maps; not A/B'd.
   - Saved as `strategies/experiments/f20a_trapped_haul.py` and `f20b_no_follow.py`.
+- **Attempt 18: F20d, trap rooms (the user's idea: don't send both agents into a trap room)** (2026-11-09). Neutral; parked. Champion stays v5.
+  - Change (on F20a): precompute enemy-side areas one guard can seal (≤40 cells); Flex skips food in a trap room shared with the Raider.
+  - Stall maps: 1.81 (v5) → 1.97 (F20a) → 2.14 pts/game. On RANDOM1890298 four of five −28 losses became wins in the A/B too.
+  - Against v5: train +0.01 ± 0.04, holdout −0.02 ± 0.04; dario −0.15 / −0.12. The filter acts on 5–71 Flex turns per dario game (rooms nest), so it steers Flex far from any trap.
+  - Next (F20e): only filter when a guard is near the room's sealing cells.
+  - Saved as `strategies/experiments/f20d_trap_rooms.py`.
