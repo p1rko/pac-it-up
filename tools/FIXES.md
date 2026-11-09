@@ -223,6 +223,23 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F20a: trapped haul, Flex gives up a pinned haul: neutral, parked (2026-11-09)
+- **Evidence:** v5 loses all 5 games on RANDOM1890298 against tracking/search/reflex by −28. Both our Pacmen enter one small enemy room with two adjacent exits (x 20–25, y 1–3 as red), one guard parks between the exits at (22,3)/(23,3), and both sit for ~700 turns carrying 12 food while the enemy raider eats ours unopposed. Stall probe on that map: 91% of stalled moves are `go_home | go_home>search` (Raider 48%, Flex 43%). `deadlocked()` never fires (score ≠ 0), and Flex only defends with 0 food. Same pattern on RANDOM1390133 and RANDOM66173; 20 v5 non-wins with idle_attack > 200 across 11 maps.
+- **Change:** `track_trapped()`: Pacman with food, `go_home` for `TRAP_TURNS` (20) own moves within `TRAP_CELLS` (3) cells → `self.trapped`, shared as `TEAM_INFO['trapped']`. `FlexAgent.give_up_haul()`: a trapped Flex walks into the guard (fight search off) when an enemy is attacking or we are not ahead, latched until it dies or the guard leaves. Branch `f20-trapped-haul` (`0d9b31a`).
+- **Stall maps** (3 maps × 6 opponents × 2 colours, 36 games): W-T-L v5 21-2-13 → F20a 21-2-13, margin +2.0 → +5.1. The −28 games became +7/−5/+1/−5/−7; offset by noise flips elsewhere.
+- **A/B against v5** (0 crashes or warnings, max move 0.34 s):
+
+  | | train `20261109-163040-ab` | holdout `20261109-165109-ab` |
+  |---|---|---|
+  | Δ pts/game | +0.03 ± 0.02 | −0.02 ± 0.03 |
+  | W-T-L v5 → F20a | 171-25-44 → 173-25-42 | 186-21-33 → 185-20-35 |
+  | idle_attack | 48.2 → 47.7 | 42.6 → 35.4 |
+  | margin | +6.93 → +7.11 | +7.43 → +7.83 |
+
+- **Reading:** it does what it targets (holdout idle_attack −17%, margins up on both pools), but the trap is rare: it fires in ~9 of 36 games on the worst maps, and turns −28 losses into smaller losses, not wins. Points don't move. Saved as `strategies/experiments/f20a_trapped_haul.py`.
+- **F20b draft** (branch `f20b-no-follow`, `4472f19`, on top of F20a): agents also share `pinned` (banking with a dangerous ghost within `DANGER_RADIUS`); an empty-handed Flex defends while its mate is pinned or trapped. Stall maps vs F20a: 22-3-11 vs 23-2-11, margin +4.8 vs +6.3; the trap games got worse (tracking/search as blue −5 → −15). Not A/B'd. Saved as `strategies/experiments/f20b_no_follow.py`.
+- **To revive:** combine F20a with something that turns the trapped haul into points (F20c: Raider breakout when trapped regardless of score), or make F20b's `pinned` stricter (no progress home for a few turns).
+
 ### F17a: trap rooms as dead ends (the user's "remember dead ends" idea): fewer deaths, less banking; neutral, parked (2026-11-08)
 - **User's observation:** our Pacman got caught after walking into a dead end. The agent already knows every simple dead end from turn 1, so nothing has to be remembered during play. The question is why it still dies in them.
 - **Analysis** (new `tools/deadend_probe.py`, v3, 480 games): 0.30 deaths per game as Pacman; 65% in dead ends (331 of 469 food lost). 64 in known pockets, **30 in trap rooms**: areas with loops inside and a single door cell, which leaf pruning can't see (42 of 80 map/side combos have one). In 34 of 94 dead-end deaths no enemy ghost was visible when we went in; `safe_food()` only counts visible ghosts.

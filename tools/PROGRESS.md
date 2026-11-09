@@ -198,3 +198,9 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Deadlock maps (8 maps × reflex/blitz): v4 8-22-0, F19b 12-15-3, F19c 14-13-2.
   - Against v4: train +0.05 ± 0.05, holdout +0.05 ± 0.04, unseen +0.03 ± 0.03; pooled **+0.040 ± 0.023 (z 1.77)**. W-T-L 517-81-122 → 532-65-123. Reflex +0.16 ± 0.07, search +0.09, tracking −0.03 ± 0.06. Conceded +0.01 (F19b: +0.20). No crashes or warnings, max move 0.31 s.
   - Counting both sides: our net +29 points, the opponents' net −7, so the gap to them grows by 36 over 720 games.
+- **Attempt 17: F20a, trapped haul** (2026-11-09). Neutral; parked. Champion stays v5.
+  - Diagnosis: on RANDOM1890298 v5 loses 5 games by −28: both Pacmen trapped in one enemy room by a single guard, ~700 turns in `go_home` vetoed by the fight search, nobody defending.
+  - Change: a Flex trapped in `go_home` for 20 moves (≤3 cells) walks into the guard to respawn home, when an enemy attacks or we're not ahead.
+  - Against v5: train +0.03 ± 0.02, holdout −0.02 ± 0.03. Holdout idle_attack 42.6 → 35.4; margins up; points flat.
+  - F20b draft (Flex defends while the Raider is pinned or trapped) was worse than F20a on the stall maps; not A/B'd.
+  - Saved as `strategies/experiments/f20a_trapped_haul.py` and `f20b_no_follow.py`.
