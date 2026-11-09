@@ -210,7 +210,7 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Against v5: train +0.01 ± 0.04, holdout −0.02 ± 0.04; dario −0.15 / −0.12. The filter acts on 5–71 Flex turns per dario game (rooms nest), so it steers Flex far from any trap.
   - Next (F20e): only filter when a guard is near the room's sealing cells.
   - Saved as `strategies/experiments/f20d_trap_rooms.py`.
-- **Attempt 19: F20e, guarded trap rooms** (2026-11-09). Neutral; waiting for the user. Champion stays v5 for now.
+- **Attempt 19: F20e, guarded trap rooms** (2026-11-09). Neutral, but fixes the targeted trap and costs nothing measurable; **accepted as v6** by the user. Frozen as `strategies/history/v6.py`; new changes are A/B'd against v6.
   - Change (on F20d): Flex only avoids the Raider's trap room when an enemy guard could reach its door within `SEAL_SLACK` (10) moves of the Raider.
   - Against v5: train +0.03 ± 0.03, holdout +0.00 ± 0.03, unseen −0.01 ± 0.02; pooled **+0.007 ± 0.016**. No crashes or warnings, max move 0.33 s.
   - RANDOM1890298: three of five −28 losses became wins. idle_attack −0.3 / −4.6 / −4.0 per game.

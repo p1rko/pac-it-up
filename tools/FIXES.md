@@ -259,7 +259,7 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 - **To revive (F20e):** fire the filter only when a guard could actually seal the shared room: keep each room's sealing cells and require an enemy ghost (seen or believed) within a few steps of one; or only when the Raider is already banking. Fast check: the 3 stall maps plus the 6 flipped dario games (`20261109-175852-ab-0009`, `-0013`; `20261109-181944-ab-0008`, `-0020`, `-0027`, `-0035`).
 - Saved as `strategies/experiments/f20d_trap_rooms.py`.
 
-### F20e: trap-room filter only when a guard could close the room: neutral (pooled +0.01), waiting for the user (2026-11-09)
+### F20e: trap-room filter only when a guard could close the room: neutral (pooled +0.01), **accepted as v6** by the user (2026-11-09)
 - **Change** (on F20d): each trap room keeps its sealing cells; Flex skips food in the Raider's room only if an enemy ghost (seen or believed, not scared) reaches a sealing cell within `SEAL_SLACK` moves of the Raider's own distance. Branch `f20e-guarded-rooms` (`d73a98f`).
 - **Slack sweep** (stall maps pts/game; RANDOM1890298 tracking/search as blue): 2 → 1.89, −5/−5 (never fires on entry: the guard is still far); 6 → 1.81, −5/−5; **10 → 1.89, +1/+11**. The 6 dario games F20d flipped return to v5's results at every slack, although the filter still acts on 10–104 Flex turns there: F20d's dario dip was most likely chaotic divergence, not the rule.
 - **A/B against v5** (0 crashes or warnings, max move 0.33 s):
