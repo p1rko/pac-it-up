@@ -88,6 +88,7 @@ class SmartAgent(CaptureAgent):
     TRAP_CELLS = 3              # ... covering at most this many cells = trapped
     ROOM_MAX = 40               # biggest area one guard can seal that counts as a trap room (F20d)
     AVOID_MATE_ROOM = False     # skip food in the teammate's trap room (F20d, Flex only)
+    SEAL_SLACK = 10             # ... only if a guard reaches its door within this many moves of the mate (F20e)
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -189,6 +190,7 @@ class SmartAgent(CaptureAgent):
         behind a choke, not a room. self.rooms[cell] = ids of rooms holding it.
         """
         self.rooms = {}
+        self.room_seals = []    # room id -> cells a guard can stand on to seal it
         border = set(self.home_border)
         room_id = {}
         for g in self.enemy_side:
@@ -205,6 +207,9 @@ class SmartAgent(CaptureAgent):
             if not sealed or len(sealed) > self.ROOM_MAX:
                 continue
             rid = room_id.setdefault(sealed, len(room_id))
+            if rid == len(self.room_seals):
+                self.room_seals.append([])
+            self.room_seals[rid].append(g)
             for c in sealed:
                 self.rooms.setdefault(c, set()).add(rid)
 
@@ -212,6 +217,30 @@ class SmartAgent(CaptureAgent):
         """a and b lie in one trap room (F20d)."""
         ra, rb = self.rooms.get(a), self.rooms.get(b)
         return bool(ra and rb and not ra.isdisjoint(rb))
+
+    def closable_rooms(self, game_state, spot):
+        """
+        F20e: the trap rooms around spot that an enemy guard could seal before
+        whoever is at spot gets out: some guard reaches one of the room's
+        sealing cells within SEAL_SLACK moves of spot's own distance to it.
+        """
+        ids = self.rooms.get(spot)
+        if not ids:
+            return set()
+        guards = []
+        for e in self.get_opponents(game_state):
+            st = game_state.get_agent_state(e)
+            if st.is_pacman or st.scared_timer > 0:
+                continue
+            p = st.get_position()
+            guards.append(p if p is not None else self.most_likely(e))
+        live = set()
+        for rid in ids:
+            for s in self.room_seals[rid]:
+                if any(self.dist(g, s) <= self.dist(spot, s) + self.SEAL_SLACK for g in guards):
+                    live.add(rid)
+                    break
+        return live
 
     # ------------------------------------------------------------------ #
     # Turn wrapper: timing and crash protection                            #
@@ -803,8 +832,11 @@ class SmartAgent(CaptureAgent):
             spots = [p for p in (game_state.get_agent_position(mate), mate_target) if p is not None]
             spots = [(int(p[0]), int(p[1])) for p in spots if p in self.rooms]
             if spots and not any(self.same_room(my_pos, p) for p in spots):
-                targets = [f for f in targets
-                           if not any(self.same_room(f, p) for p in spots)] or targets
+                # F20e: only rooms a guard could close on the teammate now.
+                live = set().union(*(self.closable_rooms(game_state, p) for p in spots))
+                if live:
+                    targets = [f for f in targets
+                               if live.isdisjoint(self.rooms.get(f, ()))] or targets
         if not targets:
             if carrying > 0:
                 return self.go_home(game_state, cost_fn, blocked)
