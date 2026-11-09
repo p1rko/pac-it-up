@@ -198,3 +198,21 @@ Raw data is in `tools/results.db`; query it with `python tools/query.py report <
   - Deadlock maps (8 maps × reflex/blitz): v4 8-22-0, F19b 12-15-3, F19c 14-13-2.
   - Against v4: train +0.05 ± 0.05, holdout +0.05 ± 0.04, unseen +0.03 ± 0.03; pooled **+0.040 ± 0.023 (z 1.77)**. W-T-L 517-81-122 → 532-65-123. Reflex +0.16 ± 0.07, search +0.09, tracking −0.03 ± 0.06. Conceded +0.01 (F19b: +0.20). No crashes or warnings, max move 0.31 s.
   - Counting both sides: our net +29 points, the opponents' net −7, so the gap to them grows by 36 over 720 games.
+- **Attempt 17: F20a, trapped haul** (2026-11-09). Neutral; parked. Champion stays v5.
+  - Diagnosis: on RANDOM1890298 v5 loses 5 games by −28: both Pacmen trapped in one enemy room by a single guard, ~700 turns in `go_home` vetoed by the fight search, nobody defending.
+  - Change: a Flex trapped in `go_home` for 20 moves (≤3 cells) walks into the guard to respawn home, when an enemy attacks or we're not ahead.
+  - Against v5: train +0.03 ± 0.02, holdout −0.02 ± 0.03. Holdout idle_attack 42.6 → 35.4; margins up; points flat.
+  - F20b draft (Flex defends while the Raider is pinned or trapped) was worse than F20a on the stall maps; not A/B'd.
+  - Saved as `strategies/experiments/f20a_trapped_haul.py` and `f20b_no_follow.py`.
+- **Attempt 18: F20d, trap rooms (the user's idea: don't send both agents into a trap room)** (2026-11-09). Neutral; parked. Champion stays v5.
+  - Change (on F20a): precompute enemy-side areas one guard can seal (≤40 cells); Flex skips food in a trap room shared with the Raider.
+  - Stall maps: 1.81 (v5) → 1.97 (F20a) → 2.14 pts/game. On RANDOM1890298 four of five −28 losses became wins in the A/B too.
+  - Against v5: train +0.01 ± 0.04, holdout −0.02 ± 0.04; dario −0.15 / −0.12. The filter acts on 5–71 Flex turns per dario game (rooms nest), so it steers Flex far from any trap.
+  - Next (F20e): only filter when a guard is near the room's sealing cells.
+  - Saved as `strategies/experiments/f20d_trap_rooms.py`.
+- **Attempt 19: F20e, guarded trap rooms** (2026-11-09). Neutral, but fixes the targeted trap and costs nothing measurable; **accepted as v6** by the user. Frozen as `strategies/history/v6.py`; new changes are A/B'd against v6.
+  - Change (on F20d): Flex only avoids the Raider's trap room when an enemy guard could reach its door within `SEAL_SLACK` (10) moves of the Raider.
+  - Against v5: train +0.03 ± 0.03, holdout +0.00 ± 0.03, unseen −0.01 ± 0.02; pooled **+0.007 ± 0.016**. No crashes or warnings, max move 0.33 s.
+  - RANDOM1890298: three of five −28 losses became wins. idle_attack −0.3 / −4.6 / −4.0 per game.
+  - F20d's dario dip didn't reproduce: same games, same filter activity, v5's results. Treat single-game flips as noise.
+  - Saved as `strategies/experiments/f20e_guarded_rooms.py`.

@@ -29,6 +29,10 @@ chasing if chasing has not been catching anyone.
   we store its **depth** and its **entrance**. This is the most important safety feature: a
   Pacman deep in a pocket with a ghost near the entrance is dead, so we avoid that food when a
   ghost is around.
+* **Trap rooms (`_compute_trap_rooms`, v6):** for every enemy-side cell a guard could stand on,
+  block it and its neighbours and collect the enemy-side cells that can no longer reach our
+  border. Areas of at most `ROOM_MAX` (40) cells are rooms one guard can seal; each keeps its
+  sealing cells. Rooms nest (a map has 50–90 of them, 1–40 cells). Takes 5–30 ms.
 
 ### 2.2 Belief tracking: where are the enemies we can't see?
 Enemies are only visible within 5 squares. Otherwise we only get a noisy distance. The team keeps
@@ -145,6 +149,17 @@ guarding it was what kept both teams frozen at 0–0. Since v5, in a tied late g
 attack at all while carrying nothing: it guards home so the Raider's push can't hand the
 opponent the winning dot.
 
+Since v6 it also avoids the "one guard holds both of us" trap (found on RANDOM1890298, where
+v5 lost 5 games by −28: both Pacmen sat in one room for ~700 turns while the enemy raider ate
+freely):
+* **Don't follow the Raider in:** Flex skips food in a trap room it shares with the Raider's
+  position or target, but only while an enemy guard could reach that room's door within
+  `SEAL_SLACK` (10) moves of the Raider. Always-on avoidance (F20d) steered Flex too often.
+* **Give up a pinned haul:** an agent is *trapped* after `TRAP_TURNS` (20) moves trying to go
+  home with food while covering at most `TRAP_CELLS` (3) cells. A trapped Flex walks into the
+  guard (when an enemy is attacking or we aren't ahead): its food goes back on the map, which it
+  was never going to bank anyway, and it respawns home where it can defend again.
+
 "Paying off" is measured live. It gets 40 free defend turns, then 40 more per invader it
 actually catches. Against greedy attackers (like the baseline) it catches several per game and
 keeps defending. Against evasive attackers it stops wasting time and goes back to scoring.
@@ -196,6 +211,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | **v3** | F16: scared-window discipline (sure-catch prey only; bank before the guards recover) | **+0.12 ± 0.05** | **+0.10 ± 0.05** (both pass the gate; pooled +0.11 ± 0.035, z 3.1; holdout margin +1.34, banked +0.94) |
 | **v4** | F19: deadlock breaker (tied with ≤ 150 moves left: bank after one dot, count unseen guards, bold route, Flex ignores empty-handed invaders) | +0.10 ± 0.05 | +0.03 ± 0.03, unseen holdout +0.04 ± 0.03; **pooled +0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49 → 30 on train; accepted by the user |
 | **v5** | F19c: Raider-only deadlock push (believed guards cost but don't block, Raider baits the guards, Flex guards home) | +0.05 ± 0.05 | +0.05 ± 0.04, unseen holdout +0.03 ± 0.03; **pooled +0.040 ± 0.023 (z 1.77)**, positive on all three pools; reflex +0.16 (z 2.3); W-T-L 517-81-122 → 532-65-123; conceded unchanged; accepted by the user |
+| **v6** | F20e: trap rooms (Flex doesn't follow the Raider into a room a guard could close; a trapped Flex gives up its haul) | +0.03 ± 0.03 | +0.00 ± 0.03, unseen holdout −0.01 ± 0.02; pooled +0.007 ± 0.016 (below what 720 pairs can show); fixes the targeted trap (RANDOM1890298: three −28 losses → wins); margin up and conceded down against all six opponents, tracking +0.07; accepted by the user |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
@@ -220,5 +236,5 @@ python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fas
 ## 8. Tunable knobs (top of `SmartAgent` / `FlexAgent`)
 `CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
 `DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`, `SCARED_BANK_MARGIN`,
-`PREY_TRAP_RANGE`, `DEADLOCK_MOVES`.
+`PREY_TRAP_RANGE`, `DEADLOCK_MOVES`, `TRAP_TURNS`, `TRAP_CELLS`, `ROOM_MAX`, `SEAL_SLACK`.
 If the tournament machine turns out slower, lower `SEARCH_TIME` first.

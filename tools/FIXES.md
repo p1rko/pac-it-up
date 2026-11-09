@@ -223,6 +223,59 @@ Pooled over the four runs that contain F5a (1920 games): margin +5.14 → +5.39,
 
 ## Parked (neutral, worth combining later)
 
+### F20a: trapped haul, Flex gives up a pinned haul: neutral, parked (2026-11-09)
+- **Evidence:** v5 loses all 5 games on RANDOM1890298 against tracking/search/reflex by −28. Both our Pacmen enter one small enemy room with two adjacent exits (x 20–25, y 1–3 as red), one guard parks between the exits at (22,3)/(23,3), and both sit for ~700 turns carrying 12 food while the enemy raider eats ours unopposed. Stall probe on that map: 91% of stalled moves are `go_home | go_home>search` (Raider 48%, Flex 43%). `deadlocked()` never fires (score ≠ 0), and Flex only defends with 0 food. Same pattern on RANDOM1390133 and RANDOM66173; 20 v5 non-wins with idle_attack > 200 across 11 maps.
+- **Change:** `track_trapped()`: Pacman with food, `go_home` for `TRAP_TURNS` (20) own moves within `TRAP_CELLS` (3) cells → `self.trapped`, shared as `TEAM_INFO['trapped']`. `FlexAgent.give_up_haul()`: a trapped Flex walks into the guard (fight search off) when an enemy is attacking or we are not ahead, latched until it dies or the guard leaves. Branch `f20-trapped-haul` (`0d9b31a`).
+- **Stall maps** (3 maps × 6 opponents × 2 colours, 36 games): W-T-L v5 21-2-13 → F20a 21-2-13, margin +2.0 → +5.1. The −28 games became +7/−5/+1/−5/−7; offset by noise flips elsewhere.
+- **A/B against v5** (0 crashes or warnings, max move 0.34 s):
+
+  | | train `20261109-163040-ab` | holdout `20261109-165109-ab` |
+  |---|---|---|
+  | Δ pts/game | +0.03 ± 0.02 | −0.02 ± 0.03 |
+  | W-T-L v5 → F20a | 171-25-44 → 173-25-42 | 186-21-33 → 185-20-35 |
+  | idle_attack | 48.2 → 47.7 | 42.6 → 35.4 |
+  | margin | +6.93 → +7.11 | +7.43 → +7.83 |
+
+- **Reading:** it does what it targets (holdout idle_attack −17%, margins up on both pools), but the trap is rare: it fires in ~9 of 36 games on the worst maps, and turns −28 losses into smaller losses, not wins. Points don't move. Saved as `strategies/experiments/f20a_trapped_haul.py`.
+- **F20b draft** (branch `f20b-no-follow`, `4472f19`, on top of F20a): agents also share `pinned` (banking with a dangerous ghost within `DANGER_RADIUS`); an empty-handed Flex defends while its mate is pinned or trapped. Stall maps vs F20a: 22-3-11 vs 23-2-11, margin +4.8 vs +6.3; the trap games got worse (tracking/search as blue −5 → −15). Not A/B'd. Saved as `strategies/experiments/f20b_no_follow.py`.
+- **To revive:** combine F20a with something that turns the trapped haul into points (F20c: Raider breakout when trapped regardless of score), or make F20b's `pinned` stricter (no progress home for a few turns).
+- **Why F20b failed** (traced RANDOM1890298 vs tracking, us blue): both agents entered the room together at turn ~55, before any guard was near, so `pinned` never stopped Flex. Afterwards the Raider stayed trapped all game, which kept Flex defending all game (score 7 → 21 against us anyway).
+
+### F20d: precomputed trap rooms, Flex doesn't follow the Raider in: neutral, parked (2026-11-09; the user's "don't send both into a trap room" idea)
+- **Change** (on top of F20a): `_compute_trap_rooms()` in `register_initial_state`: for every enemy-side cell a guard could stand on, block it and its neighbours and collect the enemy-side cells cut off from our border; areas ≤ `ROOM_MAX` (40) are trap rooms (5–30 ms). In `attack()`, Flex (`AVOID_MATE_ROOM`) drops food in a trap room shared with the Raider's position or target, unless Flex is already in it. Branch `f20d-trap-rooms` (`b30456d`).
+- **Detection:** the RANDOM1890298 room is found (37 cells); our two stuck cells (23,2) and (26,6) are in it.
+- **Stall maps** (36 games): v5 21-2-13 / 1.81 pts, F20a 23-2-11 / 1.97, **F20d 25-2-9 / 2.14**.
+- **A/B against v5** (0 crashes or warnings, max move 0.33 s):
+
+  | | train `20261109-175852-ab` | holdout `20261109-181944-ab` |
+  |---|---|---|
+  | Δ pts/game | +0.01 ± 0.04 | −0.02 ± 0.04 |
+  | W-T-L v5 → F20d | 171-25-44 → 172-25-43 | 186-20-34 → 184-22-34 |
+  | dario | −0.15 ± 0.10 | −0.12 ± 0.14 |
+  | idle_attack | 48.0 → 47.1 | 42.8 → 37.1 |
+
+- **Where it works:** on RANDOM1890298 (holdout) the five v5 −28 losses became +4, +1, +11, −10, +4: four losses turned into wins.
+- **Where it costs:** 6 dario games flip (5 against us). Replaying them reproduces the results, and the room filter acts on 5–71 Flex turns per game there, with no sacrifice. The trap room is 37 cells and rooms nest (most maps have 50–90 rooms of 1–40 cells), so the rule steers Flex in ordinary play, not only near traps. Dario guards don't camp at room exits, so it's pure cost there.
+- **To revive (F20e):** fire the filter only when a guard could actually seal the shared room: keep each room's sealing cells and require an enemy ghost (seen or believed) within a few steps of one; or only when the Raider is already banking. Fast check: the 3 stall maps plus the 6 flipped dario games (`20261109-175852-ab-0009`, `-0013`; `20261109-181944-ab-0008`, `-0020`, `-0027`, `-0035`).
+- Saved as `strategies/experiments/f20d_trap_rooms.py`.
+
+### F20e: trap-room filter only when a guard could close the room: neutral (pooled +0.01), **accepted as v6** by the user (2026-11-09)
+- **Change** (on F20d): each trap room keeps its sealing cells; Flex skips food in the Raider's room only if an enemy ghost (seen or believed, not scared) reaches a sealing cell within `SEAL_SLACK` moves of the Raider's own distance. Branch `f20e-guarded-rooms` (`d73a98f`).
+- **Slack sweep** (stall maps pts/game; RANDOM1890298 tracking/search as blue): 2 → 1.89, −5/−5 (never fires on entry: the guard is still far); 6 → 1.81, −5/−5; **10 → 1.89, +1/+11**. The 6 dario games F20d flipped return to v5's results at every slack, although the filter still acts on 10–104 Flex turns there: F20d's dario dip was most likely chaotic divergence, not the rule.
+- **A/B against v5** (0 crashes or warnings, max move 0.33 s):
+
+  | | train `20261109-193757-ab` | holdout `-195738-ab` | unseen holdout 20–39 `-201541-ab` |
+  |---|---|---|---|
+  | Δ pts/game | +0.03 ± 0.03 | +0.00 ± 0.03 | −0.01 ± 0.02 |
+  | W-T-L v5 → F20e | 170-26-44 → 173-24-43 | 186-20-34 → 186-21-33 | 175-18-47 → 174-19-47 |
+  | idle_attack | 48.2 → 47.9 | 42.8 → 38.2 | 31.0 → 27.0 |
+
+  - **Pooled over 720 pairs: +0.007 ± 0.016 (z 0.4).** Dario 0.00 / −0.07 / +0.07. Banked +0.03 / +0.23 / −0.01; unopposed food −0.13 per game on every pool.
+  - RANDOM1890298 (holdout): v5's five −28 losses → +1, +4, +11 (wins), −10, −7.
+- **By opponent** (pooled, 120 pairs each): tracking +0.067 ± 0.053, blitz +0.025, search/dario/turtle 0.00, reflex −0.042 ± 0.051. Margin up and conceded down against all six.
+- **The 3 reflex games F20e lost** (first different move between the F20e and v5 replays): RANDOM1913344 diverges on a Raider move (same code as v5: search timing); mediumCapture diverges on a fight-search move while Flex defends, and a rerun gives +21 instead of −1 (timing). Only RANDOM123647 (`20261109-193757-ab-0149`, blue) starts at the room filter (Flex move 97, turn 386); 90 turns later both our agents die on consecutive turns (477/478) to the same guard, in pockets 11–12 from home, and the game ends −8 instead of +4. Possible gap: the filter only checks rooms holding the Raider, so Flex can still pick a neighbouring room that the same guard closes.
+- **Reading:** fixes the targeted failure and costs nothing measurable, but the trap is ~1–2% of games, so the gain (~+0.01–0.03) is below what 720 pairs can show. Saved as `strategies/experiments/f20e_guarded_rooms.py`.
+
 ### F17a: trap rooms as dead ends (the user's "remember dead ends" idea): fewer deaths, less banking; neutral, parked (2026-11-08)
 - **User's observation:** our Pacman got caught after walking into a dead end. The agent already knows every simple dead end from turn 1, so nothing has to be remembered during play. The question is why it still dies in them.
 - **Analysis** (new `tools/deadend_probe.py`, v3, 480 games): 0.30 deaths per game as Pacman; 65% in dead ends (331 of 469 food lost). 64 in known pockets, **30 in trap rooms**: areas with loops inside and a single door cell, which leaf pruning can't see (42 of 80 map/side combos have one). In 34 of 94 dead-end deaths no enemy ghost was visible when we went in; `safe_food()` only counts visible ghosts.
