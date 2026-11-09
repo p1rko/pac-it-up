@@ -83,6 +83,9 @@ class SmartAgent(CaptureAgent):
     PREY_TRAP_RANGE = 8         # chase a scared ghost trapped in a pocket at most this far
     DEADLOCK_MOVES = 150        # tied with at most this many own moves left: break the standoff (F19)
     BAIT = False                # in a deadlock, walk right up to the guards to pull them away (F19b)
+    # Trapped haul (F20): going home as Pacman with food, but pinned by a guard.
+    TRAP_TURNS = 20             # own moves in go_home ...
+    TRAP_CELLS = 3              # ... covering at most this many cells = trapped
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -117,10 +120,15 @@ class SmartAgent(CaptureAgent):
         self._compute_dead_ends()
         self.home_dist_cache = {}
         self.banking = False    # decided to bank: keep going home instead of re-deciding
+        self.went_home = False  # go_home ran this turn (F20)
+        self.home_trace = deque(maxlen=self.TRAP_TURNS)
+        self.trapped = False
+        self.sacrificing = False
 
         # Fresh shared state every game (agents are reused across games with -n).
         TEAM_INFO[self.red] = {
             'targets': {},
+            'trapped': {},
             'beliefs': {e: {game_state.get_initial_agent_position(e): 1.0}
                         for e in self.get_opponents(game_state)},
             'invader_turns': {e: 0 for e in self.get_opponents(game_state)},
@@ -183,6 +191,7 @@ class SmartAgent(CaptureAgent):
         forfeits the match, a random legal move only loses one turn.
         """
         legal = game_state.get_legal_actions(self.index)
+        self.went_home = False
         try:
             self.update_beliefs(game_state)
             action = self.decide(game_state)
@@ -195,7 +204,22 @@ class SmartAgent(CaptureAgent):
             non_stop = [a for a in legal if a != Directions.STOP]
             action = random.choice(non_stop or legal)
         self.recent.append(game_state.get_agent_position(self.index))
+        self.track_trapped(game_state)
         return action
+
+    def track_trapped(self, game_state):
+        """
+        Trapped (F20): as Pacman with food we kept trying to go home for
+        TRAP_TURNS moves but stayed within TRAP_CELLS cells. Read next turn.
+        """
+        st = game_state.get_agent_state(self.index)
+        if self.went_home and st.is_pacman and st.num_carrying > 0:
+            self.home_trace.append(st.get_position())
+        else:
+            self.home_trace.clear()
+        self.trapped = (len(self.home_trace) == self.TRAP_TURNS
+                        and len(set(self.home_trace)) <= self.TRAP_CELLS)
+        self.team()['trapped'][self.index] = self.trapped
 
     def decide(self, game_state):
         raise NotImplementedError
@@ -845,6 +869,7 @@ class SmartAgent(CaptureAgent):
         return None
 
     def go_home(self, game_state, cost_fn=None, blocked=frozenset()):
+        self.went_home = True
         self.team()['targets'].pop(self.index, None)
         step, _ = self.plan(game_state, self.home_border, cost_fn, blocked)
         if step is None:
@@ -1081,6 +1106,34 @@ class FlexAgent(RaiderAgent):
         self.defend_turns = 0
         self.catches = 0
 
+    def give_up_haul(self, game_state):
+        """
+        F20a: pinned with food and unable to bank, Flex walks into the guard.
+        The food goes back on the map (it was never reaching home anyway) and
+        Flex respawns at home, where it can defend again. Only when that
+        defence matters: an enemy is attacking or we are not ahead.
+        """
+        my_state = game_state.get_agent_state(self.index)
+        if not my_state.is_pacman or my_state.num_carrying == 0:
+            self.sacrificing = False
+            return None
+        if not self.sacrificing:
+            if not self.trapped:
+                return None
+            if not self.invaders(game_state) and self.get_score(game_state) > 0:
+                return None
+            self.sacrificing = True
+        my_pos = my_state.get_position()
+        ghosts = self.dangerous_ghosts(game_state, my_pos)
+        if not ghosts:
+            self.sacrificing = False   # the guard left: banking is possible again
+            return None
+        act = self.step_towards(game_state, ghosts)
+        if act is None:
+            return None
+        self.baiting = True            # keep the fight search from pulling us back
+        return act
+
     def count_catches(self, game_state):
         """An invader that was next to us last turn and is now gone or back at spawn was eaten by us."""
         prev = self.get_previous_observation()
@@ -1101,6 +1154,9 @@ class FlexAgent(RaiderAgent):
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+        act = self.give_up_haul(game_state)
+        if act is not None:
+            return act
         if my_state.num_carrying == 0 and self.deadlocked(game_state):
             # Tied late: the Raider pushes alone; Flex guards home so the push
             # can't hand the opponent the winning dot (F19c).
