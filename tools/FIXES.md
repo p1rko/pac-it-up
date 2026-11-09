@@ -646,6 +646,13 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 
 ## Fixed
 
+### F22: capsule push to win (the user's idea): **accepted as v7** (2026-11-09)
+- **Weakness:** v6 ends 147 of 720 ties/losses with an enemy capsule unused; one scared window (40 moves) would often have covered the deficit.
+- **Change:** `capsule_push()` (team state `push`): per enemy capsule, `sweep_value` = dots two agents could eat and bank within `SWEEP_BUDGET` (38) moves (one from the capsule, one from the nearest crossing; greedy, cached). Fire when the sweep alone leaves ≤ 2 dots (food-limit win), or when ≤ `PUSH_MOVES` (120) own moves are left, we're at most `PUSH_LEAD` (0) ahead and score + carried + sweep ≥ 1. Both agents head for the nearest capsule; once eaten, F16's unlimited scared-window attack sweeps and banks; the push ends with the window. Capsules are never held back (the user's constraint): escapes and normal play still eat them.
+- **Result vs v6 (720 pairs, three pools):** pooled **+0.115 ± 0.031 (z 3.8)**; unseen +0.23 ± 0.06 passes alone. Ties/losses → wins: 534-64-122 → 566-51-103. Banked +0.78, conceded +0.27 (home is empty during a push). Blitz ±0.01 (two attackers punish the empty home).
+- **Follow-ups:** keep Flex home during a push when two invaders are in our half (blitz); abort a push that makes no progress towards a guarded capsule.
+
+
 ### F16: scared-window discipline (the user's observations): **accepted as v3** (2026-11-08)
 - **What the user saw:** (1) an attacker next to a scared ghost in a 2×2 block shuffles back and forth until the timer ends; (2) an attacker eats and chases during the window, then the guards recover while it's far from home with food.
 - **Measured** (`tools/scared_window_probe.py`, v2, 480 games): in 46% of scared windows an attacker oscillates next to a scared ghost, 7.8 wasted moves per window. Example `20261107-204214-ab-0244`, moves 620–682: carrying 8 food, 6 steps from home. Cause: `attack()` step 2 chased any scared ghost within 2, ahead of banking. Deaths right after a window were rare (0.12 food/game). The bigger loss was time: only 1.6 food per window was banked inside it.

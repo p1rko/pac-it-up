@@ -115,6 +115,13 @@ Priority list, top to bottom:
    Since v5, believed guards only add cost (a wrong belief used to seal every corridor); only
    seen guards block. The Raider walks right up to the guards (only their own cells blocked) and
    skips the fight search while doing so, to bait them; Flex stays home (see Roles).
+8. **Capsule push** (v7, the user's idea; checked first in each agent's turn). For every enemy
+   capsule we estimate how many dots two agents could eat *and bank* inside its scared window
+   (`SWEEP_BUDGET` 38 of the 40 moves; one agent from the capsule, one from the nearest
+   crossing). If that sweep alone would leave ≤ 2 dots (the food-limit win), or late in the game
+   (≤ `PUSH_MOVES` 120 own moves left) while we aren't ahead (`PUSH_LEAD` 0) and the sweep would
+   put us in front, both agents go for the nearest capsule; once it is eaten the scared-window
+   attack (step 4) sweeps and banks. Capsules are never saved: escapes still eat them.
 
 ---
 
@@ -212,6 +219,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | **v4** | F19: deadlock breaker (tied with ≤ 150 moves left: bank after one dot, count unseen guards, bold route, Flex ignores empty-handed invaders) | +0.10 ± 0.05 | +0.03 ± 0.03, unseen holdout +0.04 ± 0.03; **pooled +0.053 ± 0.021 (z 2.51)** over 720 pairs; ties 49 → 30 on train; accepted by the user |
 | **v5** | F19c: Raider-only deadlock push (believed guards cost but don't block, Raider baits the guards, Flex guards home) | +0.05 ± 0.05 | +0.05 ± 0.04, unseen holdout +0.03 ± 0.03; **pooled +0.040 ± 0.023 (z 1.77)**, positive on all three pools; reflex +0.16 (z 2.3); W-T-L 517-81-122 → 532-65-123; conceded unchanged; accepted by the user |
 | **v6** | F20e: trap rooms (Flex doesn't follow the Raider into a room a guard could close; a trapped Flex gives up its haul) | +0.03 ± 0.03 | +0.00 ± 0.03, unseen holdout −0.01 ± 0.02; pooled +0.007 ± 0.016 (below what 720 pairs can show); fixes the targeted trap (RANDOM1890298: three −28 losses → wins); margin up and conceded down against all six opponents, tracking +0.07; accepted by the user |
+| **v7** | F22: capsule push (go for an enemy capsule when one scared window's sweep would win the game) | +0.03 ± 0.04 | +0.08 ± 0.05, unseen holdout +0.23 ± 0.06; **pooled +0.115 ± 0.031 (z 3.8)**; W-T-L 534-64-122 → 566-51-103; banked +0.78, conceded +0.27; better against five opponents, blitz neutral; accepted by the user |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
@@ -236,5 +244,6 @@ python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fas
 ## 8. Tunable knobs (top of `SmartAgent` / `FlexAgent`)
 `CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
 `DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`, `SCARED_BANK_MARGIN`,
-`PREY_TRAP_RANGE`, `DEADLOCK_MOVES`, `TRAP_TURNS`, `TRAP_CELLS`, `ROOM_MAX`, `SEAL_SLACK`.
+`PREY_TRAP_RANGE`, `DEADLOCK_MOVES`, `TRAP_TURNS`, `TRAP_CELLS`, `ROOM_MAX`, `SEAL_SLACK`, `PUSH_MOVES`, `PUSH_LEAD`,
+`SWEEP_BUDGET`.
 If the tournament machine turns out slower, lower `SEARCH_TIME` first.
