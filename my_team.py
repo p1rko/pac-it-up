@@ -89,6 +89,10 @@ class SmartAgent(CaptureAgent):
     ROOM_MAX = 40               # biggest area one guard can seal that counts as a trap room (F20d)
     AVOID_MATE_ROOM = False     # skip food in the teammate's trap room (F20d, Flex only)
     SEAL_SLACK = 10             # ... only if a guard reaches its door within this many moves of the mate (F20e)
+    # Capsule push (F22): use a capsule to win the game outright.
+    PUSH_MOVES = 120            # late game: at most this many own moves left ...
+    PUSH_LEAD = 0               # ... and our lead at most this: push if the sweep would win on score
+    SWEEP_BUDGET = 38           # moves of the 40-move scared window we plan the sweep in
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -897,6 +901,82 @@ class SmartAgent(CaptureAgent):
         # Trapped: we are closer to the pocket's only way out than it is.
         return self.dist(my_pos, mouth) < self.dist(ghost, mouth)
 
+    # ------------------------------------------------------------------ #
+    # Capsule push (F22)                                                   #
+    # ------------------------------------------------------------------ #
+
+    def greedy_sweep(self, start, dots):
+        """Dots one agent can eat from start and still be home within SWEEP_BUDGET."""
+        cur, used, got, left = start, 0, [], set(dots)
+        while True:
+            ok = [d for d in left if used + self.dist(cur, d) + self.home_distance(d) <= self.SWEEP_BUDGET]
+            if not ok:
+                return got
+            d = min(ok, key=lambda d: (self.dist(cur, d), self.home_distance(d)))
+            used += self.dist(cur, d)
+            cur = d
+            got.append(d)
+            left.discard(d)
+
+    def sweep_value(self, food, capsule):
+        """Two-agent sweep from a capsule: one starts on it, one at the crossing nearest to it."""
+        key = (capsule, len(food))
+        cache = self.team().setdefault('sweep_cache', {})
+        if key not in cache:
+            a = self.greedy_sweep(capsule, food)
+            entry = min(self.enemy_border, key=lambda e: self.dist(e, capsule))
+            b = self.greedy_sweep(entry, [f for f in food if f not in set(a)])
+            cache[key] = len(a) + len(b)
+        return cache[key]
+
+    def capsule_push(self, game_state):
+        """
+        F22 (the user's capsule idea): when one capsule window can win the
+        game, both agents go for the capsule, then sweep with the usual
+        scared-window attack and bank before the guards recover.
+        Fires when (a) late, not ahead, and the sweep beats the deficit, or
+        (b) the sweep would bring our returned food to the winning total.
+        Capsules are never saved for this: escapes still eat them as before.
+        """
+        team = self.team()
+        caps = self.get_capsules(game_state)
+        window = max(game_state.get_agent_state(e).scared_timer for e in self.get_opponents(game_state))
+        push = team.get('push')
+        if push is not None:
+            if push['phase'] == 'go' and push['capsule'] not in caps:
+                push['phase'] = 'sweep' if window > 0 else None
+            if push['phase'] == 'sweep' and window == 0:
+                push['phase'] = None
+            if push['phase'] is None:
+                team['push'] = push = None
+        if push is None:
+            if not caps or window > 0:
+                return None
+            food = self.get_food(game_state).as_list()
+            mates = self.get_team(game_state)
+            carrying = sum(game_state.get_agent_state(i).num_carrying for i in mates)
+            score = self.get_score(game_state)
+            moves_left = self.moves_left(game_state)
+            best = None
+            for c in caps:
+                d = min(self.dist(game_state.get_agent_position(i), c) for i in mates)
+                gain = self.sweep_value(food, c)
+                finish = len(food) > 2 and len(food) - gain <= 2   # the sweep itself wins (rule 1 handles <= 2)
+                on_score = (score <= self.PUSH_LEAD and moves_left <= self.PUSH_MOVES
+                            and score + carrying + gain >= 1)
+                if (finish or on_score) and moves_left >= d + self.SWEEP_BUDGET:
+                    if best is None or d < best[0]:
+                        best = (d, c)
+            if best is None:
+                return None
+            team['push'] = push = {'capsule': best[1], 'phase': 'go'}
+        if push['phase'] == 'sweep':
+            return self.attack(game_state)   # scared-window attack (F16) sweeps and banks in time
+        my_pos = game_state.get_agent_position(self.index)
+        ghosts = self.dangerous_ghosts(game_state, my_pos)
+        blocked = self.ghost_blocked(ghosts) if game_state.get_agent_state(self.index).is_pacman else set()
+        return self.step_towards(game_state, [push['capsule']], self.ghost_cost_fn(ghosts), blocked)
+
     def enemies_scared(self, game_state):
         """Moves the enemy ghosts stay scared for (0 if any is not scared)."""
         timers = [game_state.get_agent_state(e).scared_timer for e in self.get_opponents(game_state)
@@ -1089,6 +1169,9 @@ class RaiderAgent(SmartAgent):
     BAIT = True
 
     def decide(self, game_state):
+        act = self.capsule_push(game_state)
+        if act is not None:
+            return act
         score = self.get_score(game_state)
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
@@ -1232,6 +1315,9 @@ class FlexAgent(RaiderAgent):
         my_pos = my_state.get_position()
         worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
         act = self.give_up_haul(game_state)
+        if act is not None:
+            return act
+        act = self.capsule_push(game_state)
         if act is not None:
             return act
         if my_state.num_carrying == 0 and self.deadlocked(game_state):
