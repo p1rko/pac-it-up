@@ -34,6 +34,7 @@ TEAMS = {
     'reflex': 'strategies/reflex.py',
     'blitz': 'strategies/blitz.py',
     'turtle': 'strategies/turtle.py',
+    'hydra': 'strategies/hydra.py',
 }
 
 
