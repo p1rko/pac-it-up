@@ -122,6 +122,9 @@ Priority list, top to bottom:
    (≤ `PUSH_MOVES` 120 own moves left) while we aren't ahead (`PUSH_LEAD` 0) and the sweep would
    put us in front, both agents go for the nearest capsule; once it is eaten the scared-window
    attack (step 4) sweeps and banks. Capsules are never saved: escapes still eat them.
+   Since v8 a push that gets no closer to its capsule for `PUSH_STUCK` (12) moves is
+   abandoned, and that capsule isn't retried for `PUSH_BAN` (60) moves (it was guarded). Flex
+   stays home instead of pushing while two invaders are in our half (`PUSH_GUARD`).
 
 ---
 
@@ -131,6 +134,11 @@ Priority list, top to bottom:
   and we can reach the pocket's mouth first, close the mouth (trap). If we can reach its escape
   crossing first, wait on its path. Otherwise chase directly. The last few steps are handled by
   alpha-beta.
+* **Exit cut-off** (v8, `CUTOFF`): against an invader carrying food, we look at every exit it
+  could plausibly use, up to `CUTOFF_SLACK` (3) steps further than its nearest. If we can beat
+  it to all of them, we meet it on its way to the exit where our lead is smallest, the one it
+  would pick to get past us. Otherwise the intercept above applies. This was the largest part
+  of v8's gain: switching it off concedes 0.5 more food per game.
 * **Scared** (they ate a capsule): shadow the invader at distance 2 so we can pounce the moment
   the timer ends, without being eaten.
 * **No invaders:** stand on the border cell that best balances "close to the food we defend"
@@ -166,6 +174,20 @@ freely):
   home with food while covering at most `TRAP_CELLS` (3) cells. A trapped Flex walks into the
   guard (when an enemy is attacking or we aren't ahead): its food goes back on the map, which it
   was never going to bank anyway, and it respawns home where it can defend again.
+
+Since v8:
+* **Opponent profile** (`PROFILE`): after about 100 rounds, the team counts the share of turns
+  in which enemy Pacmen were in our half.
+  * Against a **double-attack** team (both enemies inside at once in > 15% of turns, e.g.
+    blitz), Flex defends from further away (`DOUBLE_RADIUS` 12) and for longer before it has
+    to catch anyone (`DOUBLE_FREE` 80).
+  * Against a **passive** team (< 5%), Flex ignores empty-handed invaders, and the deadlock push
+    starts earlier (250 moves).
+  * Everyone else gets the v7 behaviour, unchanged.
+* **Pin rescue** (`PIN_RESCUE`): if the Raider is trapped with food (see above), the score is
+  ≤ 0 and ≤ 300 moves are left, Flex attacks from another crossing (unless an invader carrying
+  2+ is in our half). One guard can't both pin the Raider and stop Flex. Before this, v7 ended
+  tied games with the Raider pinned 4 cells inside, carrying 4–7 food, for 150+ turns.
 
 "Paying off" is measured live. It gets 40 free defend turns, then 40 more per invader it
 actually catches. Against greedy attackers (like the baseline) it catches several per game and
@@ -220,6 +242,7 @@ pass on train maps and on unseen holdout maps. Full logs are in `tools/PROGRESS.
 | **v5** | F19c: Raider-only deadlock push (believed guards cost but don't block, Raider baits the guards, Flex guards home) | +0.05 ± 0.05 | +0.05 ± 0.04, unseen holdout +0.03 ± 0.03; **pooled +0.040 ± 0.023 (z 1.77)**, positive on all three pools; reflex +0.16 (z 2.3); W-T-L 517-81-122 → 532-65-123; conceded unchanged; accepted by the user |
 | **v6** | F20e: trap rooms (Flex doesn't follow the Raider into a room a guard could close; a trapped Flex gives up its haul) | +0.03 ± 0.03 | +0.00 ± 0.03, unseen holdout −0.01 ± 0.02; pooled +0.007 ± 0.016 (below what 720 pairs can show); fixes the targeted trap (RANDOM1890298: three −28 losses → wins); margin up and conceded down against all six opponents, tracking +0.07; accepted by the user |
 | **v7** | F22: capsule push (go for an enemy capsule when one scared window's sweep would win the game) | +0.03 ± 0.04 | +0.08 ± 0.05, unseen holdout +0.23 ± 0.06; **pooled +0.115 ± 0.031 (z 3.8)**; W-T-L 534-64-122 → 566-51-103; banked +0.78, conceded +0.27; better against five opponents, blitz neutral; accepted by the user |
+| **v8** | F23 (Apex): opponent profiling, push guard/abort, exit cut-off in defence, pin rescue. Tested against seven opponents (the six plus the new from-scratch opponent Hydra) | +0.04 ± 0.05 | +0.10 ± 0.04, unseen holdout +0.03 ± 0.04; **pooled +0.057 ± 0.025 (z 2.2)** over 840 pairs; W-T-L 652-54-134 → 669-51-120; conceded −0.3 to −0.5 in every pool; no opponent negative. Ablation: each part pays off or is neutral (the cut-off is the largest). No constant change survived the sweep's holdout check. 10-agent round robin: v8 2.44, v7 2.18. Accepted by the user |
 
 v1 also stalls less (71 → 51 idle attacking turns per game) and banks more (+1.3 food per game
 on holdout). The holdout maps are all random mazes, where long trips home past the 15-step
@@ -245,5 +268,7 @@ python capture.py -r ../../../my_team.py -b baseline_team -Q -l RANDOM42   # fas
 `CARRY_LIMIT`, `DANGER_RADIUS`, `SAFETY_MARGIN`, `SEARCH_TIME`, `FIGHT_RANGE`,
 `DEFEND_RADIUS`, `DANGER_HAUL`, `FREE_DEFENCE`, `TURNS_PER_CATCH`, `SCARED_BANK_MARGIN`,
 `PREY_TRAP_RANGE`, `DEADLOCK_MOVES`, `TRAP_TURNS`, `TRAP_CELLS`, `ROOM_MAX`, `SEAL_SLACK`, `PUSH_MOVES`, `PUSH_LEAD`,
-`SWEEP_BUDGET`.
+`SWEEP_BUDGET`, and since v8 `PROFILE`, `PROFILE_MIN`, `DOUBLE_SHARE`, `PASSIVE_SHARE`,
+`PASSIVE_DEADLOCK`, `PUSH_GUARD`, `PUSH_STUCK`, `PUSH_BAN`, `CUTOFF`, `CUTOFF_SLACK`,
+`PIN_RESCUE`, `RESCUE_MOVES`, `DOUBLE_RADIUS`, `DOUBLE_FREE`.
 If the tournament machine turns out slower, lower `SEARCH_TIME` first.

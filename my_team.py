@@ -1,4 +1,5 @@
-# my_team.py
+# my_team.py (v8 = v7 + F23: opponent profiling, push guard/abort, exit cut-off,
+# pin rescue; each behind a class flag)
 # ---------------
 # Licensing Information: Please do not distribute or publish solutions to this
 # project. You are free to use and extend these projects for educational
@@ -93,6 +94,19 @@ class SmartAgent(CaptureAgent):
     PUSH_MOVES = 120            # late game: at most this many own moves left ...
     PUSH_LEAD = 0               # ... and our lead at most this: push if the sweep would win on score
     SWEEP_BUDGET = 38           # moves of the 40-move scared window we plan the sweep in
+    # F23 (Apex): each part can be switched off for ablation.
+    PROFILE = True              # A: classify the opponent (double attack / passive / standard)
+    PROFILE_MIN = 200           # agent turns observed before the profile is trusted (~100 rounds)
+    DOUBLE_SHARE = 0.15         # both enemies are Pacmen in more than this share of turns
+    PASSIVE_SHARE = 0.05        # any enemy is a Pacman in less than this share of turns
+    PASSIVE_DEADLOCK = 250      # deadlock push starts earlier against a passive team
+    PUSH_GUARD = False          # B: this agent skips a push while two invaders are in our half (Flex)
+    PUSH_STUCK = 12             # B: abort a push that got no closer to its capsule in this many own moves
+    PUSH_BAN = 60               # ... and don't retry that capsule for this many own moves
+    CUTOFF = True               # C: defend() stands on the exit it wins the race to
+    CUTOFF_SLACK = 3            # exits at most this much further for the invader than its nearest
+    PIN_RESCUE = True           # E: Flex attacks while the Raider is pinned with food in a close game
+    RESCUE_MOVES = 300          # ... only with at most this many own moves left
 
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
@@ -140,6 +154,7 @@ class SmartAgent(CaptureAgent):
             'beliefs': {e: {game_state.get_initial_agent_position(e): 1.0}
                         for e in self.get_opponents(game_state)},
             'invader_turns': {e: 0 for e in self.get_opponents(game_state)},
+            'obs_turns': 0, 'any_turns': 0, 'both_turns': 0,   # F23 profile counters
         }
 
     def _adjacent(self, cell):
@@ -323,6 +338,11 @@ class SmartAgent(CaptureAgent):
                     spread[n] = spread.get(n, 0.0) + share
             beliefs[mover] = spread
 
+        attackers = sum(game_state.get_agent_state(e).is_pacman for e in self.get_opponents(game_state))
+        team['obs_turns'] += 1
+        team['any_turns'] += attackers >= 1
+        team['both_turns'] += attackers >= 2
+
         for e in self.get_opponents(game_state):
             st = game_state.get_agent_state(e)
             pos = st.get_position()
@@ -410,7 +430,24 @@ class SmartAgent(CaptureAgent):
         into a win (3), and a death only costs time (the food is dropped back
         on the map), so the usual caution no longer pays.
         """
-        return self.get_score(game_state) == 0 and self.moves_left(game_state) <= self.DEADLOCK_MOVES
+        limit = self.PASSIVE_DEADLOCK if self.profile() == 'passive' else self.DEADLOCK_MOVES
+        return self.get_score(game_state) == 0 and self.moves_left(game_state) <= limit
+
+    def profile(self):
+        """
+        F23-A: what kind of opponent this is, from the share of turns its
+        agents spend as Pacmen in our half. 'double': both attack at once
+        often (blitz-like); 'passive': it hardly attacks (turtle-like).
+        """
+        team = self.team()
+        n = team['obs_turns']
+        if not self.PROFILE or n < self.PROFILE_MIN:
+            return 'standard'
+        if team['both_turns'] > self.DOUBLE_SHARE * n:
+            return 'double'
+        if team['any_turns'] < self.PASSIVE_SHARE * n:
+            return 'passive'
+        return 'standard'
 
     def home_distance(self, pos):
         d = self.home_dist_cache.get(pos)
@@ -949,7 +986,20 @@ class SmartAgent(CaptureAgent):
                 push['phase'] = None
             if push['phase'] is None:
                 team['push'] = push = None
+        moves_now = self.moves_left(game_state)
+        if push is not None and push['phase'] == 'go':
+            # F23-B: abort a push that makes no progress (the capsule is guarded).
+            d_now = min(self.dist(game_state.get_agent_position(i), push['capsule'])
+                        for i in self.get_team(game_state))
+            if d_now < push['best_d']:
+                push['best_d'], push['best_at'] = d_now, moves_now
+            elif push['best_at'] - moves_now > self.PUSH_STUCK:
+                team.setdefault('push_ban', {})[push['capsule']] = moves_now - self.PUSH_BAN
+                team['push'] = push = None
+                return None
         if push is None:
+            bans = team.get('push_ban', {})
+            caps = [c for c in caps if bans.get(c, -1) < moves_now]
             if not caps or window > 0:
                 return None
             food = self.get_food(game_state).as_list()
@@ -969,7 +1019,12 @@ class SmartAgent(CaptureAgent):
                         best = (d, c)
             if best is None:
                 return None
-            team['push'] = push = {'capsule': best[1], 'phase': 'go'}
+            team['push'] = push = {'capsule': best[1], 'phase': 'go', 'best_d': best[0], 'best_at': moves_left}
+        # F23-B (F22a): Flex keeps guarding home while the push would leave it open.
+        if self.PUSH_GUARD and not game_state.get_agent_state(self.index).num_carrying:
+            home_inv = [p for _, p in self.invader_positions(game_state) if self.is_home(p)]
+            if len(home_inv) >= 2 or (home_inv and self.profile() == 'double'):
+                return None
         if push['phase'] == 'sweep':
             return self.attack(game_state)   # scared-window attack (F16) sweeps and banks in time
         my_pos = game_state.get_agent_position(self.index)
@@ -1079,7 +1134,13 @@ class SmartAgent(CaptureAgent):
                 if act:
                     return act
                 return self.flee_from(game_state, target)
-            goal = self.intercept_point(my_pos, target)
+            goal = None
+            if self.CUTOFF:
+                carried = max((game_state.get_agent_state(i).num_carrying for i, p in invaders if p == target),
+                              default=0)
+                if carried:
+                    goal = self.cutoff_point(my_pos, target)
+            goal = goal or self.intercept_point(my_pos, target)
             act = self.step_towards(game_state, [goal], blocked=self.enemy_side)
             if act:
                 return act
@@ -1118,6 +1179,29 @@ class SmartAgent(CaptureAgent):
             if path_cells:
                 return min(path_cells, key=lambda c: self.dist(c, invader))
         return invader
+
+    def cutoff_point(self, my_pos, invader):
+        """
+        F23-C: a loaded invader heads for an exit. Among the exits it could
+        plausibly use (at most CUTOFF_SLACK further than its nearest), take
+        the one we beat it to by the most and meet it on its path there.
+        None when we win no race (then the usual intercept/chase applies).
+        """
+        if self.dist(my_pos, invader) <= 2:
+            return None
+        to_exit = {b: self.dist(invader, b) for b in self.home_border}
+        nearest = min(to_exit.values())
+        exits = [b for b, d in to_exit.items() if d <= nearest + self.CUTOFF_SLACK]
+        # The invader picks the exit that is safest for it: our lead there is smallest.
+        leads = {b: to_exit[b] - self.dist(my_pos, b) for b in exits}
+        if min(leads.values()) <= 0:
+            return None   # it has an exit we can't cover: keep the normal behaviour
+        exit_cell = min(exits, key=lambda b: (leads[b], to_exit[b]))
+        line = to_exit[exit_cell]
+        on_path = [c for c in self.home_cells
+                   if self.dist(c, invader) + self.dist(c, exit_cell) == line
+                   and self.dist(my_pos, c) < self.dist(invader, c)]
+        return min(on_path, key=lambda c: self.dist(c, invader)) if on_path else exit_cell
 
     def flee_from(self, game_state, threat):
         best, best_d = Directions.STOP, -INF
@@ -1260,6 +1344,9 @@ class FlexAgent(RaiderAgent):
     TURNS_PER_CATCH = 40    # each catch buys this many more defend turns
     BAIT = False            # in a deadlock Flex is the runner, not the bait
     AVOID_MATE_ROOM = True  # don't follow the Raider into a trap room (F20d)
+    PUSH_GUARD = True       # F23-B: stay home during a push against two invaders
+    DOUBLE_RADIUS = 12      # F23-A: DEFEND_RADIUS against a double-attack team ...
+    DOUBLE_FREE = 80        # ... and FREE_DEFENCE
 
     def register_initial_state(self, game_state):
         RaiderAgent.register_initial_state(self, game_state)
@@ -1294,6 +1381,27 @@ class FlexAgent(RaiderAgent):
         self.baiting = True            # keep the fight search from pulling us back
         return act
 
+    def rescue_mate(self, game_state):
+        """
+        F23-E: the Raider is pinned with food by a guard (it has tried to go
+        home for TRAP_TURNS moves without getting anywhere) and the game is
+        close and late. Flex attacks from another crossing: one guard can't
+        both pin the Raider and stop Flex, so one of them gets food home.
+        Not while an invader carrying 2+ is in our half (home needs Flex).
+        """
+        if not self.PIN_RESCUE:
+            return False
+        my_state = game_state.get_agent_state(self.index)
+        if my_state.num_carrying or my_state.scared_timer:
+            return False
+        mate = [i for i in self.get_team(game_state) if i != self.index][0]
+        if not self.team()['trapped'].get(mate) or not game_state.get_agent_state(mate).num_carrying:
+            return False
+        if self.get_score(game_state) > 0 or self.moves_left(game_state) > self.RESCUE_MOVES:
+            return False
+        return not any(game_state.get_agent_state(i).num_carrying >= 2 and self.is_home(p)
+                       for i, p in self.invader_positions(game_state))
+
     def count_catches(self, game_state):
         """An invader that was next to us last turn and is now gone or back at spawn was eaten by us."""
         prev = self.get_previous_observation()
@@ -1313,13 +1421,18 @@ class FlexAgent(RaiderAgent):
         self.count_catches(game_state)
         my_state = game_state.get_agent_state(self.index)
         my_pos = my_state.get_position()
-        worth_it = self.defend_turns < self.FREE_DEFENCE + self.TURNS_PER_CATCH * self.catches
+        profile = self.profile()
+        radius = self.DOUBLE_RADIUS if profile == 'double' else self.DEFEND_RADIUS
+        free = self.DOUBLE_FREE if profile == 'double' else self.FREE_DEFENCE
+        worth_it = self.defend_turns < free + self.TURNS_PER_CATCH * self.catches
         act = self.give_up_haul(game_state)
         if act is not None:
             return act
         act = self.capsule_push(game_state)
         if act is not None:
             return act
+        if self.rescue_mate(game_state):
+            return self.attack(game_state)
         if my_state.num_carrying == 0 and self.deadlocked(game_state):
             # Tied late: the Raider pushes alone; Flex guards home so the push
             # can't hand the opponent the winning dot (F19c).
@@ -1327,9 +1440,9 @@ class FlexAgent(RaiderAgent):
         if my_state.num_carrying == 0 and my_state.scared_timer == 0:
             for i, p in self.invader_positions(game_state):
                 carrying = game_state.get_agent_state(i).num_carrying
-                close = self.dist(my_pos, p) <= self.DEFEND_RADIUS and not my_state.is_pacman
-                if close and carrying == 0 and self.deadlocked(game_state):
-                    close = False   # an empty-handed invader can't score: don't let it pin us (F19)
+                close = self.dist(my_pos, p) <= radius and not my_state.is_pacman
+                if close and carrying == 0 and (self.deadlocked(game_state) or profile == 'passive'):
+                    close = False   # an empty-handed invader can't score: don't let it pin us (F19, F23-A)
                 if (close and worth_it) or carrying >= self.DANGER_HAUL:
                     self.defend_turns += 1
                     return self.defend(game_state, others=self.mate_handling(game_state))

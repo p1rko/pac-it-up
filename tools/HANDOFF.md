@@ -1,8 +1,14 @@
 # Handoff: where the optimisation stands and what to do next
 
-Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
+Last updated 2026-11-10. Read this first when resuming. Details are in `tools/FIXES.md` (one entry per weakness and attempt) and `tools/PROGRESS.md` (one entry per cycle).
 
 ## State in one glance
+- **Resume here (2026-11-10, latest):** champion is **v8** = v7 + F23 "Apex" (`strategies/history/v8.py` = `my_team.py`; branch `f23-apex`, merged into `optimize-loop` and `main`, pushed to origin and the team repo).
+  - Pooled **+0.057 ± 0.025 (z 2.2)** against v7 over three pools, with seven opponents. No opponent negative; conceded −0.3 to −0.5 per game. Accepted by the user.
+  - Parts, each behind a flag: A opponent profiling, B push guard/abort, C exit cut-off in `defend()`, E pin rescue. Ablation and sweep are in FIXES (F23).
+  - A/B new work against `v8=strategies/history/v8.py`.
+  - **The opponent field now has 7 teams:** add `strategies/hydra.py` (new from-scratch opponent, frozen, 4th of 10 in `20261110-122749-rr`) to every `--vs` list.
+  - Run long jobs with `nice -n 15` and ≤ 8 workers (the laptop runs hot; 10 workers caused move-time spikes).
 - **Resume here (2026-11-09, latest):** champion is **v7** = v6 + F22, the capsule push (`strategies/history/v7.py`, on `optimize-loop`, `main` and the team repo). Pooled **+0.115 ± 0.031 (z 3.8)** against v6 over three pools; positive against five opponents, blitz neutral; accepted by the user. A/B new work against `v7=strategies/history/v7.py`.
 - **Previous (2026-11-09):** champion was **v6** = v5 + F20e, guarded trap rooms (`strategies/history/v6.py`, on `optimize-loop`, `main` and the team repo). Pooled +0.007 ± 0.016 against v5 over three pools (below detection: the trap is ~1–2% of games), but it fixes the targeted failure (RANDOM1890298: v5 lost 5 games by −28 with both Pacmen held in one room by one guard; three became wins), and margin is up / conceded down against all six opponents; accepted by the user. F20a/F20b/F20d are parked steps towards it (`strategies/experiments/f20*.py`). **Lesson:** single-game flips between versions are mostly chaotic divergence (time-boxed search); check the first differing move in the replays before blaming a rule.
 - **Previous (2026-11-08):** champion was **v5** = v4 + F19c, the Raider-only deadlock push (`strategies/history/v5.py`, on `optimize-loop`, `main` and the team repo). Pooled +0.040 ± 0.023 (z 1.77) against v4, positive on all three pools; accepted by the user. Before: champion was **v4** = v3 + F19, the deadlock breaker (`strategies/history/v4.py`, on `optimize-loop` and `main`). Pooled +0.053 ± 0.021 (z 2.51) over three pools against v3; accepted by the user. F17a–d (dead ends) and F18/F18b (calm opening) are closed. Earlier: champion was **v3** = F16, scared-window discipline (`strategies/history/v3.py`, on `optimize-loop`). It passed the gate on both train (+0.12) and holdout (+0.10) against v2. F15 and F15b (capsule cover) were parked at ±0.00. F17a (the user's dead-end idea: trap rooms) was parked at −0.01: deaths −17%, but banked −0.30. Its record is on the local branch `f17-trap-rooms`. Every experiment's code is in `strategies/experiments/`; per-attempt branches are local only.
@@ -38,7 +44,7 @@ Last updated 2026-11-07. Read this first when resuming. Details are in `tools/FI
 ```bash
 # Train and holdout A/B against the champion: 480 games each, about 15 min each. Always run both.
 # Train alone has hidden real gains: v1 was ±0.00 on train and +0.24 on holdout.
-PACKITUP_DEBUG=1 venv/bin/python tools/tournament.py ab my_team.py v1=strategies/history/v1.py --vs strategies/dario.py strategies/tracking.py strategies/search.py strategies/reflex.py strategies/blitz.py strategies/turtle.py --maps 20 --purpose "..."
+PACKITUP_DEBUG=1 venv/bin/python tools/tournament.py ab my_team.py v1=strategies/history/v1.py --vs strategies/dario.py strategies/tracking.py strategies/search.py strategies/reflex.py strategies/blitz.py strategies/turtle.py strategies/hydra.py --maps 20 --purpose "..."
 #   ...same with --pool holdout
 # zsh: list the opponents literally; a $VAR holding them is passed as one argument.
 
@@ -113,6 +119,11 @@ The league rule exists because the tournament is a round-robin ranked by total p
 | F12 | v2 + F9 home hunt (vs v2) | train +0.05, holdout −0.05, unseen −0.12; pooled −0.04 ± 0.035 (z −1.1), rejected; kills up, banked −0.45, conceded ≈ | `experiments/f12_v2_home_hunt.py` |
 
 ## Next possible steps (recommended order)
+- **After v8 (2026-11-10):**
+  - An opponent- or map-dependent carry limit. `CARRY_LIMIT` 8 banked +0.68 on train but was −0.01 on holdout.
+  - Hydra exposes something in v7/v8: v7 scored only 1.75 against it. Look at those losses with `watch.py queue --opp hydra`.
+  - A second from-scratch opponent would diversify the field further.
+  - Before submission, check timing on a slower machine (v8's max move ≈ 0.40 s at nominal load).
 0. **Pending from 2026-11-09:** the watchable mini tournament (`tools/mini_tournament.py`, v7 vs the six teams, 1 map each, seed 7) went 4-0-2; the losses were search on RANDOM158177 (−8) and blitz on RANDOM682555 (food limit). Offered: replay both with `--record` and check whether the capsule push was involved.
    **F22 follow-ups** (v7): keep Flex home during a push when two invaders are in our half (blitz ±0.01, conceded +0.24); abort a push stuck behind a guard; tune `PUSH_MOVES`/`PUSH_LEAD`. **F21 (window-end ambush) parked 2026-11-09** (see FIXES). **F20 follow-ups** (v6): F20f, Flex also avoids rooms the same guard can close (seen in `20261109-193757-ab-0149`: both agents killed by one guard on consecutive turns); F20c, Raider breakout when trapped regardless of score. Biggest remaining loss cause overall is still invader-unopposed, not stalls.
 1. **Deadlock follow-ups** (F19c accepted as v5). Background: remaining deadlocks are mostly structural: a guard parked on the only corridor (e.g. RANDOM797927). A revive idea: both agents attack from different crossings to pull the guard.
@@ -128,4 +139,4 @@ The league rule exists because the tournament is a round-robin ranked by total p
    - F4: both agents leave a long spawn corridor by the same path.
    - F8: both scared ghosts get eaten together.
    - F6 revive: harvest plus more capsules, and still eat scared ghosts far from their spawn.
-8. **Before submission:** `main` has v4. Check timing on a slower machine; lower `SEARCH_TIME` first if needed.
+8. **Before submission:** `main` has v8. Check timing on a slower machine; lower `SEARCH_TIME` first if needed.

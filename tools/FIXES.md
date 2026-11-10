@@ -646,7 +646,7 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 
 ## Fixed
 
-### F23: Apex, v7 + four follow-ups behind flags (2026-11-10): passes the gate pooled, ablation running
+### F23: Apex, v7 + four follow-ups behind flags: **accepted as v8** (2026-11-10)
 - **Parts:**
   - **A `PROFILE`:** classify the opponent from the share of turns its agents are Pacmen in our half (after 200 agent turns).
     - double attack (both at once > 15%): Flex `DEFEND_RADIUS` 12, `FREE_DEFENCE` 80, and Flex skips a push while any invader is home.
@@ -686,7 +686,7 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 
   - The same lesson as F15b: train-only gains of +0.07–0.10 didn't survive holdout. The constants look close to a local optimum.
   - `CARRY_LIMIT` 8 still raised banked food (+0.68 on train), so a carry limit that depends on the opponent or the map could be a revive idea.
-- **Status:** final Apex = the four parts with v7's constants. Waiting for the user's decision on v8.
+- **Status:** final Apex = the four parts with v7's constants. **Accepted by the user as v8**; frozen as `strategies/history/v8.py`.
 
 ### F22: capsule push to win (the user's idea): **accepted as v7** (2026-11-09)
 - **Weakness:** v6 ends 147 of 720 ties/losses with an enemy capsule unused; one scared window (40 moves) would often have covered the deficit.
