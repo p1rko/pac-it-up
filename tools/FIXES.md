@@ -661,7 +661,18 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 - **A/B against v7** (seven opponents incl. Hydra, 840 pairs): train +0.04 ± 0.05, holdout +0.10 ± 0.04, unseen +0.03 ± 0.04; pooled **+0.057 ± 0.025 (z 2.2)**.
   - Pooled by opponent: reflex +0.09, dario +0.09, search +0.08, blitz +0.07, hydra +0.06, tracking 0.00, turtle 0.00.
   - Conceded −0.29 / −0.46 / −0.38; banked +0.16 / +0.12 / −0.24.
-- **Next:** ablation (each part off, against full Apex, train + holdout) under `strategies/experiments/ablation/`; then a sweep of `SCARED_BANK_MARGIN`, `PREY_TRAP_RANGE`, `PUSH_MOVES`, `PUSH_LEAD`, `CARRY_LIMIT`.
+- **Ablation** (each part off against full Apex; Δ = without − with, so negative means the part helps; train / holdout, 280 pairs each):
+
+  | part off | train | holdout | what it buys |
+  |---|---|---|---|
+  | C cut-off | −0.09 ± 0.04 | −0.08 ± 0.04 | the biggest: conceded +0.51 in both pools without it; hydra −0.30 / −0.15 |
+  | B push guard/abort | −0.05 ± 0.03 | −0.04 ± 0.03 | blitz −0.07 / −0.12 |
+  | E pin rescue | −0.06 ± 0.03 | −0.00 ± 0.03 | timeout_carry +0.11 / +0.06 without it |
+  | A profiling | +0.00 ± 0.04 | −0.01 ± 0.01 | neutral overall; blitz −0.25 without it on train, search noisy (+0.17 / −0.12) |
+
+  All four are kept: none is negative, and A only acts against double-attack teams (it leaves 'standard' opponents' games identical).
+  - Timing: Apex's max move was 0.40 s. One run spiked to 0.75 s for dario and the variant alike: machine load from 10 workers on 10 cores, not code. Use 8 workers.
+- **Next:** a sweep of `SCARED_BANK_MARGIN`, `PREY_TRAP_RANGE`, `PUSH_MOVES`, `PUSH_LEAD`, `CARRY_LIMIT`.
 
 ### F22: capsule push to win (the user's idea): **accepted as v7** (2026-11-09)
 - **Weakness:** v6 ends 147 of 720 ties/losses with an enemy capsule unused; one scared window (40 moves) would often have covered the deficit.
