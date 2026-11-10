@@ -672,7 +672,21 @@ Recall Flex for a big haul only if it reaches the invader's escape crossing firs
 
   All four are kept: none is negative, and A only acts against double-attack teams (it leaves 'standard' opponents' games identical).
   - Timing: Apex's max move was 0.40 s. One run spiked to 0.75 s for dario and the variant alike: machine load from 10 workers on 10 cores, not code. Use 8 workers.
-- **Next:** a sweep of `SCARED_BANK_MARGIN`, `PREY_TRAP_RANGE`, `PUSH_MOVES`, `PUSH_LEAD`, `CARRY_LIMIT`.
+- **Parameter sweep** (each variant against full Apex, 280 pairs per pool; files in `strategies/experiments/sweep/`): **nothing kept, Apex keeps v7's constants.**
+
+  | variant | train | holdout | unseen |
+  |---|---|---|---|
+  | `CARRY_LIMIT` 8 | +0.09 ± 0.05 | −0.01 ± 0.04 | |
+  | `PUSH_MOVES` 180 | +0.07 ± 0.05 | **−0.14 ± 0.05** | |
+  | both together | +0.10 ± 0.07 | −0.06 ± 0.06 | +0.01 ± 0.06 (pooled ≈ +0.02 ± 0.04) |
+  | `SCARED_BANK_MARGIN` 2 / 4 | +0.01 / −0.03 | | |
+  | `PREY_TRAP_RANGE` 12 | −0.00 | | |
+  | `PUSH_LEAD` 2 | −0.01 | | |
+  | `CARRY_LIMIT` 6 | −0.07 | | |
+
+  - The same lesson as F15b: train-only gains of +0.07–0.10 didn't survive holdout. The constants look close to a local optimum.
+  - `CARRY_LIMIT` 8 still raised banked food (+0.68 on train), so a carry limit that depends on the opponent or the map could be a revive idea.
+- **Status:** final Apex = the four parts with v7's constants. Waiting for the user's decision on v8.
 
 ### F22: capsule push to win (the user's idea): **accepted as v7** (2026-11-09)
 - **Weakness:** v6 ends 147 of 720 ties/losses with an enemy capsule unused; one scared window (40 moves) would often have covered the deficit.
